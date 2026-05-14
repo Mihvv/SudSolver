@@ -53,6 +53,10 @@ jobs:
           sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle*
           sed -i 's/android:label="SudSolver"/android:label="Sudsolver (debug)"/g' android/app/src/main/AndroidManifest.xml
 
+      - name: Create google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
+
       - name: Flutter preparation
         run: |
           flutter config --no-analytics
@@ -63,8 +67,18 @@ jobs:
           dart format --output=none --set-exit-if-changed ./lib
           dart analyze --no-fatal-warnings ./lib
 
+      - name: Run unit tests
+        run: flutter test
+
       - name: Build profile APK
         run: flutter build apk --profile
+
+      - name: Upload to Firebase App Distribution
+        uses: w9jds/firebase-action@master
+        with:
+          args: appdistribution:distribute build/app/outputs/flutter-apk/app-profile.apk --app ${{ secrets.FIREBASE_APP_ID }} --groups "testers"
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
