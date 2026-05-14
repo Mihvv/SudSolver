@@ -3,7 +3,7 @@ run-name: Build debug apks for ${{ github.ref_name }}
 
 on:
   push:
-    branches: [main, backend]
+    branches: [main, backend, cicd]
     paths-ignore:
       - "README.md"
       - "**/*.md"
