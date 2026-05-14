@@ -1,0 +1,73 @@
+name: Build
+run-name: Build debug apks for ${{ github.ref_name }}
+
+on:
+  push:
+    branches: [main, backend]
+    paths-ignore:
+      - "README.md"
+      - "**/*.md"
+      - "**/*.yaml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Analyze and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: ex_br
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.0
+          channel: stable
+
+      - name: Create keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
+
+      - name: Create key.properties
+        run: |
+          echo "storeFile=keystore.jks" > android/key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+
+      - name: Modify app metadata (Debug branding)
+        run: |
+          sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle
+          sed -i 's/android:label="SudSolver"/android:label="Sudsolver (debug)"/g' android/app/src/main/AndroidManifest.xml
+
+      - name: Flutter preparation
+        run: |
+          flutter config --no-analytics
+          flutter pub get
+
+      - name: Analyze code
+        run: |
+          dart format --output=none --set-exit-if-changed ./lib
+          dart analyze --no-fatal-warnings ./lib
+
+      - name: Build profile APK
+        run: flutter build apk --profile
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-profile-${{ steps.ex_br.outputs.branch }}
+          path: build/app/outputs/flutter-apk/app-profile.apk
