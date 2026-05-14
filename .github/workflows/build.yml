@@ -50,7 +50,7 @@ jobs:
 
       - name: Modify app metadata (Debug branding)
         run: |
-          sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle
+          sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle*
           sed -i 's/android:label="SudSolver"/android:label="Sudsolver (debug)"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Flutter preparation
