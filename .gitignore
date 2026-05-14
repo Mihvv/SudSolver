@@ -52,3 +52,4 @@ android/app/keystore_base64.txt
 **/*.jks
 **/*.keystore
 android/app/google-services.json
+android/app/google-services_base64.txt
