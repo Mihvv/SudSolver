@@ -22,4 +22,18 @@ class SudokuValidator {
 
     return true;
   }
+
+  bool isValidBoard(SudokuBoard board) {
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        int val = board.grid[r][c];
+        if (val != 0) {
+          if (!isValidMove(board, r, c, val)) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
 }
