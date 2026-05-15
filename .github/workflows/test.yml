@@ -1,0 +1,55 @@
+name: Test
+run-name: Analyze & test ${{ github.ref_name }}
+
+on:
+  push:
+    branches: [main, backend]
+    paths-ignore:
+      - "README.md"
+      - "**/*.md"
+      - "**/*.yaml"
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze_and_test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Flutter pub get
+        run: |
+          flutter config --no-analytics
+          flutter pub get
+
+      - name: Analyze code
+        run: |
+          dart format --output=none --set-exit-if-changed ./lib
+          dart analyze --no-fatal-warnings ./lib
+
+      - name: Run unit tests
+        run: flutter test
