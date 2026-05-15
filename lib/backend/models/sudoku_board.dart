@@ -1,37 +1,27 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class SudokuBoard {
-  List<List<int>> grid;
-  List<List<bool>> isFixed;
+  final List<List<int>> grid;
+  final List<List<bool>> isFixed;
 
-  SudokuBoard(this.grid, {List<List<bool>>? isFixed})
-    : isFixed =
-          isFixed ?? List.generate(9, (_) => List.generate(9, (_) => false));
+  const SudokuBoard(this.grid, this.isFixed);
 
-  factory SudokuBoard.empty() {
-    return SudokuBoard(List.generate(9, (_) => List.generate(9, (_) => 0)));
+  factory SudokuBoard.empty() => SudokuBoard(
+    List.generate(9, (_) => List.filled(9, 0)),
+    List.generate(9, (_) => List.filled(9, false)),
+  );
+
+  SudokuBoard copyWithCell(int row, int col, int value) {
+    final newGrid = grid.map((r) => List<int>.from(r)).toList();
+    newGrid[row][col] = value;
+    return SudokuBoard(newGrid, isFixed);
   }
 
-  void setCell(int row, int col, int value) {
-    if (value >= 0 && value <= 9) {
-      grid[row][col] = value;
-    }
-  }
-
-  void lockCurrentClues() {
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
-        if (grid[r][c] != 0) {
-          isFixed[r][c] = true;
-        }
-      }
-    }
-  }
-
-  SudokuBoard clone() {
-    List<List<int>> newGrid = grid.map((row) => List<int>.from(row)).toList();
-    List<List<bool>> newIsFixed = isFixed
-        .map((row) => List<bool>.from(row))
+  SudokuBoard lock() {
+    final newIsFixed = grid
+        .map((row) => row.map((val) => val != 0).toList())
         .toList();
-
-    return SudokuBoard(newGrid, isFixed: newIsFixed);
+    return SudokuBoard(grid, newIsFixed);
   }
 }

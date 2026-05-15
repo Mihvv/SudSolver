@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import '../models/sudoku_board.dart';
 
 enum GameStatus { idle, scanning, correctingOCR, playing, solved, error }
 
+@immutable
 class SudokuState {
   final SudokuBoard board;
   final GameStatus status;
@@ -9,13 +11,22 @@ class SudokuState {
   final int? selectedRow;
   final int? selectedCol;
 
-  SudokuState({
+  const SudokuState({
     required this.board,
     this.status = GameStatus.idle,
     this.errorMessage,
     this.selectedRow,
     this.selectedCol,
   });
+
+  bool get hasSelection => selectedRow != null && selectedCol != null;
+  bool isSelected(int r, int c) => selectedRow == r && selectedCol == c;
+  bool get isEditable =>
+      status == GameStatus.playing || status == GameStatus.correctingOCR;
+  bool get canSolve =>
+      (status == GameStatus.playing || status == GameStatus.correctingOCR) &&
+      errorMessage == null;
+  bool get isScanning => status == GameStatus.scanning;
 
   SudokuState copyWith({
     SudokuBoard? board,
