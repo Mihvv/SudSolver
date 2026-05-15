@@ -2,29 +2,30 @@ import '../models/sudoku_board.dart';
 import 'sudoku_validator.dart';
 
 class SudokuSolver {
-  final SudokuValidator _validator;
-
-  SudokuSolver(this._validator);
-
   bool solve(SudokuBoard board) {
-    for (int row = 0; row < 9; row++) {
-      for (int col = 0; col < 9; col++) {
-        if (board.grid[row][col] == 0) {
-          for (int num = 1; num <= 9; num++) {
-            if (_validator.isValidMove(board, row, col, num)) {
-              board.grid[row][col] = num;
+    final emptyCell = _findEmpty(board);
+    if (emptyCell == null) return true;
 
-              if (solve(board)) {
-                return true;
-              } else {
-                board.grid[row][col] = 0;
-              }
-            }
-          }
-          return false;
-        }
+    final (row, col) = emptyCell;
+
+    for (int num = 1; num <= 9; num++) {
+      if (SudokuValidator.isValidMove(board, row, col, num)) {
+        board.grid[row][col] = num;
+
+        if (solve(board)) return true;
+
+        board.grid[row][col] = 0;
       }
     }
-    return true;
+    return false;
+  }
+
+  (int, int)? _findEmpty(SudokuBoard board) {
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (board.grid[r][c] == 0) return (r, c);
+      }
+    }
+    return null;
   }
 }
