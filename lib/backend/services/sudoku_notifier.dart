@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudsolver/backend/services/scanner_service.dart';
 import '../models/sudoku_board.dart';
@@ -24,14 +25,14 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   SudokuNotifier(this._repository)
     : super(SudokuState(board: SudokuBoard.empty()));
 
-  //Selekcja komórki
+  // Cell selection
   void selectCell(int row, int col) {
     if (state.canEditCell(row, col)) {
       state = state.copyWith(selectedRow: row, selectedCol: col);
     }
   }
 
-  // Wpisywanie cyfry
+  // Enter a digit
   void updateSelectedCell(int value) {
     final r = state.selectedRow;
     final c = state.selectedCol;
@@ -47,7 +48,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
       }
     }
 
-    // Detekcja ukończenia manualnego
+    // Detect manual completion
     if (error == null && SudokuValidator.isBoardComplete(newBoard)) {
       _stopTimer();
       _saveRecord(newBoard, solvedManually: true);
@@ -62,7 +63,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     state = state.copyWith(board: newBoard, errorMessage: error);
   }
 
-  // Potwierdzenie planszy po OCR
+  // Confirm board after OCR
   void confirmScannedBoard() {
     if (SudokuValidator.isBoardValid(state.board)) {
       state = state.copyWith(
@@ -78,7 +79,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Auto-rozwiązywanie
+  // Auto-solve
   void solveBoard() {
     final solution = _solver.solve(state.board);
     if (solution != null) {
@@ -95,7 +96,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Podpowiedź
+  // Hint
   void giveHint() {
     if (!state.canSolve) return;
 
@@ -120,7 +121,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Skanowanie
+  // Scan image
   Future<void> scanBoard(String imagePath) async {
     state = state.copyWith(status: GameStatus.scanning, errorMessage: null);
     try {
@@ -161,7 +162,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _timer = null;
   }
 
-  // Zapis do archiwum
+  // Save to history
   Future<void> _saveRecord(
     SudokuBoard solvedBoard, {
     required bool solvedManually,
@@ -177,6 +178,9 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     );
     await _repository.save(record);
   }
+
+  @visibleForTesting
+  void debugSetState(SudokuState s) => state = s;
 
   @override
   void dispose() {
