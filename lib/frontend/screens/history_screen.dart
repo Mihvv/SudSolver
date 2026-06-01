@@ -81,24 +81,26 @@ class _HistoryCard extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor:
-          isAuto ? Colors.orange.shade100 : Colors.green.shade100,
+          backgroundColor: isAuto
+              ? Colors.orange.shade100
+              : Colors.green.shade100,
           child: Icon(
             isAuto ? Icons.auto_fix_high : Icons.person_outline,
             color: isAuto ? Colors.orange : Colors.green,
             size: 20,
           ),
         ),
-        title: Text(dateStr,
-            style: const TextStyle(fontWeight: FontWeight.w500)),
+        title: Text(
+          dateStr,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(isAuto ? 'Rozwiązane automatycznie' : 'Rozwiązane ręcznie'),
             if (record.solveTime != null)
               Text('Czas: ${_formatTime(record.solveTime!)}'),
-            if (record.hintsUsed > 0)
-              Text('Podpowiedzi: ${record.hintsUsed}'),
+            if (record.hintsUsed > 0) Text('Podpowiedzi: ${record.hintsUsed}'),
           ],
         ),
         isThreeLine: record.solveTime != null || record.hintsUsed > 0,

@@ -5,7 +5,11 @@ class NumberPad extends StatelessWidget {
   final SudokuNotifier notifier;
   final bool isEditable;
 
-  const NumberPad({super.key, required this.notifier, required this.isEditable});
+  const NumberPad({
+    super.key,
+    required this.notifier,
+    required this.isEditable,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +30,9 @@ class NumberPad extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: isEditable ? () => notifier.updateSelectedCell(i) : null,
+                    onTap: isEditable
+                        ? () => notifier.updateSelectedCell(i)
+                        : null,
                     child: Center(
                       child: Text(
                         label,

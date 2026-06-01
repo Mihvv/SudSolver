@@ -9,7 +9,9 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final errorMessage = ref.watch(sudokuProvider.select((s) => s.errorMessage));
+    final errorMessage = ref.watch(
+      sudokuProvider.select((s) => s.errorMessage),
+    );
 
     return Scaffold(
       body: SafeArea(

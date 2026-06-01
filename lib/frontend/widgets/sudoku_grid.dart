@@ -31,7 +31,8 @@ class SudokuGrid extends StatelessWidget {
             final canEdit = state.canEditCell(r, c);
 
             // Podświetlanie wiersza, kolumny i bloku 3x3
-            final isHighlighted = state.hasSelection &&
+            final isHighlighted =
+                state.hasSelection &&
                 !isSelected &&
                 (state.selectedRow == r ||
                     state.selectedCol == c ||
@@ -75,14 +76,15 @@ class SudokuGrid extends StatelessWidget {
                   child: value == 0
                       ? null
                       : Text(
-                    value.toString(),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                      isFixed ? FontWeight.bold : FontWeight.normal,
-                      color: isFixed ? Colors.black : colorScheme.primary,
-                    ),
-                  ),
+                          value.toString(),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: isFixed
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isFixed ? Colors.black : colorScheme.primary,
+                          ),
+                        ),
                 ),
               ),
             );

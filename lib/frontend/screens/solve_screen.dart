@@ -29,7 +29,10 @@ class SolveScreen extends ConsumerWidget {
             child: Center(
               child: Text(
                 _formatTime(state.elapsed),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -83,7 +86,9 @@ class SolveScreen extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton(
-                      onPressed: state.canSolve ? () => notifier.solveBoard() : null,
+                      onPressed: state.canSolve
+                          ? () => notifier.solveBoard()
+                          : null,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

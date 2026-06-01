@@ -120,8 +120,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         children: const [
           Icon(Icons.photo_library_outlined, size: 80, color: Colors.white24),
           SizedBox(height: 16),
-          Text('Wybierz zdjęcie z galerii',
-              style: TextStyle(color: Colors.white38, fontSize: 16)),
+          Text(
+            'Wybierz zdjęcie z galerii',
+            style: TextStyle(color: Colors.white38, fontSize: 16),
+          ),
         ],
       );
     }
@@ -176,8 +178,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                   children: [
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 16),
-                    Text('Skanowanie...',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    Text(
+                      'Skanowanie...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ],
                 ),
               ),
