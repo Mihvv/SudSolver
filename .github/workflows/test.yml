@@ -3,7 +3,7 @@ run-name: Analyze & test ${{ github.ref_name }}
 
 on:
   push:
-    branches: [main, backend]
+    branches: [main, backend, frontend]
     paths-ignore:
       - "README.md"
       - "**/*.md"
