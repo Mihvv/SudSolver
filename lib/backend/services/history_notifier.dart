@@ -34,29 +34,47 @@ final historyProvider = StateNotifierProvider<HistoryNotifier, HistoryState>(
 
 class HistoryNotifier extends StateNotifier<HistoryState> {
   final ISudokuRepository _repository;
+  bool _isLoading = false;
 
   HistoryNotifier(this._repository) : super(const HistoryState());
 
   Future<void> loadHistory() async {
+    if (_isLoading) return;
+    _isLoading = true;
+
     state = state.copyWith(status: HistoryLoadStatus.loading);
     try {
       final records = await _repository.getAll();
+
+      if (!mounted) return;
+
       state = state.copyWith(
         records: records,
         status: HistoryLoadStatus.loaded,
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         status: HistoryLoadStatus.error,
         errorMessage: 'Błąd ładowania historii: ${e.toString()}',
       );
+    } finally {
+      _isLoading = false;
     }
   }
 
   Future<void> deleteRecord(String id) async {
-    await _repository.delete(id);
     state = state.copyWith(
       records: state.records.where((r) => r.id != id).toList(),
     );
+    try {
+      await _repository.delete(id);
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        errorMessage: 'Błąd usuwania rekordu: ${e.toString()}',
+      );
+      await loadHistory();
+    }
   }
 }

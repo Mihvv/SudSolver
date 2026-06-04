@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudsolver/backend/services/scanner_service.dart';
+import 'package:sudsolver/backend/services/mock_scanner_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
@@ -9,20 +10,27 @@ import 'sudoku_state.dart';
 import 'sudoku_solver.dart';
 import 'sudoku_validator.dart';
 
+final scannerServiceProvider = Provider<IScannerService>(
+  (_) => const MockScannerService(),
+);
+
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
   ref,
 ) {
-  return SudokuNotifier(ref.read(sudokuRepositoryProvider));
+  return SudokuNotifier(
+    ref.read(sudokuRepositoryProvider),
+    ref.read(scannerServiceProvider),
+  );
 });
 
 class SudokuNotifier extends StateNotifier<SudokuState> {
   final SudokuSolver _solver = SudokuSolver();
   final ISudokuRepository _repository;
-  final MockScannerService _scanner = MockScannerService();
+  final IScannerService _scanner;
 
   Timer? _timer;
 
-  SudokuNotifier(this._repository)
+  SudokuNotifier(this._repository, this._scanner)
     : super(SudokuState(board: SudokuBoard.empty()));
 
   // Cell selection
@@ -153,10 +161,15 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
         status: GameStatus.correctingOCR,
         invalidCells: {},
       );
+    } on ScannerException catch (e) {
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Błąd skanowania: ${e.message}',
+      );
     } catch (e) {
       state = state.copyWith(
         status: GameStatus.error,
-        errorMessage: 'Błąd skanowania: ${e.toString()}',
+        errorMessage: 'Nieoczekiwany błąd: ${e.toString()}',
       );
     }
   }
