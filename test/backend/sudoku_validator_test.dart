@@ -117,4 +117,79 @@ void main() {
       expect(SudokuValidator.isBoardComplete(_boardFromGrid(grid)), isFalse);
     });
   });
+
+  group('SudokuValidator.getInvalidCells', () {
+    test('returns empty set for an empty board', () {
+      expect(SudokuValidator.getInvalidCells(SudokuBoard.empty()), isEmpty);
+    });
+
+    test('returns empty set for a partially filled valid board', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[0][1] = 3;
+      grid[1][0] = 6;
+      expect(SudokuValidator.getInvalidCells(_boardFromGrid(grid)), isEmpty);
+    });
+
+    test('returns empty set for a fully solved valid board', () {
+      expect(
+        SudokuValidator.getInvalidCells(_boardFromGrid(_solvedGrid)),
+        isEmpty,
+      );
+    });
+
+    test('marks both cells when row has a duplicate', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[0][3] = 5;
+      final invalid = SudokuValidator.getInvalidCells(_boardFromGrid(grid));
+      expect(invalid, containsAll([(0, 0), (0, 3)]));
+      expect(invalid.length, 2);
+    });
+
+    test('marks both cells when column has a duplicate', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[4][0] = 5;
+      final invalid = SudokuValidator.getInvalidCells(_boardFromGrid(grid));
+      expect(invalid, containsAll([(0, 0), (4, 0)]));
+      expect(invalid.length, 2);
+    });
+
+    test('marks both cells when 3x3 box has a duplicate', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[2][2] = 5;
+      final invalid = SudokuValidator.getInvalidCells(_boardFromGrid(grid));
+      expect(invalid, containsAll([(0, 0), (2, 2)]));
+      expect(invalid.length, 2);
+    });
+
+    test('marks all three cells when three cells in a row share a value', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[0][3] = 5;
+      grid[0][6] = 5;
+      final invalid = SudokuValidator.getInvalidCells(_boardFromGrid(grid));
+      expect(invalid, containsAll([(0, 0), (0, 3), (0, 6)]));
+    });
+
+    test('does not mark cells with value 0', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      // All zeros — no conflicts expected
+      expect(SudokuValidator.getInvalidCells(_boardFromGrid(grid)), isEmpty);
+    });
+
+    test('a cell conflicting in both row and column is marked once', () {
+      final grid = List.generate(9, (_) => List.filled(9, 0));
+      grid[0][0] = 5;
+      grid[0][5] = 5; // row conflict with (0,0)
+      grid[3][0] = 5; // col conflict with (0,0)
+      final invalid = SudokuValidator.getInvalidCells(_boardFromGrid(grid));
+      // (0,0) should appear only once even though it conflicts in both row and col
+      expect(invalid.contains((0, 0)), isTrue);
+      expect(invalid.contains((0, 5)), isTrue);
+      expect(invalid.contains((3, 0)), isTrue);
+    });
+  });
 }

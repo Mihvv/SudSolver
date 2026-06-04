@@ -50,6 +50,58 @@ class SudokuValidator {
     return isBoardValid(board);
   }
 
+  static Set<(int, int)> getInvalidCells(SudokuBoard board) {
+    final invalid = <(int, int)>{};
+
+    for (int r = 0; r < 9; r++) {
+      final seen = <int, int>{};
+      for (int c = 0; c < 9; c++) {
+        final val = board.grid[r][c];
+        if (val == 0) continue;
+        if (seen.containsKey(val)) {
+          invalid.add((r, seen[val]!));
+          invalid.add((r, c));
+        } else {
+          seen[val] = c;
+        }
+      }
+    }
+
+    for (int c = 0; c < 9; c++) {
+      final seen = <int, int>{};
+      for (int r = 0; r < 9; r++) {
+        final val = board.grid[r][c];
+        if (val == 0) continue;
+        if (seen.containsKey(val)) {
+          invalid.add((seen[val]!, c));
+          invalid.add((r, c));
+        } else {
+          seen[val] = r;
+        }
+      }
+    }
+
+    for (int boxRow = 0; boxRow < 3; boxRow++) {
+      for (int boxCol = 0; boxCol < 3; boxCol++) {
+        final seen = <int, (int, int)>{};
+        for (int r = boxRow * 3; r < boxRow * 3 + 3; r++) {
+          for (int c = boxCol * 3; c < boxCol * 3 + 3; c++) {
+            final val = board.grid[r][c];
+            if (val == 0) continue;
+            if (seen.containsKey(val)) {
+              invalid.add(seen[val]!);
+              invalid.add((r, c));
+            } else {
+              seen[val] = (r, c);
+            }
+          }
+        }
+      }
+    }
+
+    return invalid;
+  }
+
   static bool _isUniqueNonZero(List<int> values) {
     final seen = <int>{};
     for (final val in values) {

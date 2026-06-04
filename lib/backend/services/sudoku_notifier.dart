@@ -32,7 +32,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Enter a digit
+  // changing user selected cell
   void updateSelectedCell(int value) {
     final r = state.selectedRow;
     final c = state.selectedCol;
@@ -41,42 +41,59 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
 
     final newBoard = state.board.copyWithCell(r, c, value);
 
-    String? error;
-    if (state.status == GameStatus.playing && value != 0) {
-      if (!SudokuValidator.isValidMove(state.board, r, c, value)) {
-        error = 'Cyfra $value narusza zasady Sudoku!';
-      }
-    }
-
     // Detect manual completion
-    if (error == null && SudokuValidator.isBoardComplete(newBoard)) {
+    if (SudokuValidator.isBoardComplete(newBoard)) {
       _stopTimer();
       _saveRecord(newBoard, solvedManually: true);
       state = state.copyWith(
         board: newBoard,
         status: GameStatus.solved,
         errorMessage: null,
+        invalidCells: {},
       );
       return;
     }
 
-    state = state.copyWith(board: newBoard, errorMessage: error);
+    state = state.copyWith(
+      board: newBoard,
+      invalidCells: {},
+      errorMessage: null,
+    );
   }
 
-  // Confirm board after OCR
-  void confirmScannedBoard() {
-    if (SudokuValidator.isBoardValid(state.board)) {
-      state = state.copyWith(
-        board: state.board.lock(),
-        status: GameStatus.playing,
-        errorMessage: null,
-        selectedRow: null,
-        selectedCol: null,
-      );
-      _startTimer();
+  // checking if board is valid
+  void validateBoard() {
+    final invalid = SudokuValidator.getInvalidCells(state.board);
+    if (invalid.isEmpty) {
+      state = state.copyWith(invalidCells: {}, errorMessage: null);
     } else {
-      state = state.copyWith(errorMessage: 'Plansza zawiera błędy!');
+      state = state.copyWith(
+        invalidCells: invalid,
+        errorMessage: 'Plansza zawiera błędy w ${invalid.length} komórkach.',
+      );
     }
+  }
+
+  // confirm scanned board from camera
+  void confirmScannedBoard() {
+    final invalid = SudokuValidator.getInvalidCells(state.board);
+    if (invalid.isNotEmpty) {
+      state = state.copyWith(
+        invalidCells: invalid,
+        errorMessage: 'Plansza zawiera błędy — popraw zaznaczone komórki.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      board: state.board.lock(),
+      status: GameStatus.playing,
+      errorMessage: null,
+      invalidCells: {},
+      selectedRow: null,
+      selectedCol: null,
+    );
+    _startTimer();
   }
 
   // Auto-solve
@@ -90,6 +107,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
         board: solvedBoard,
         status: GameStatus.solved,
         errorMessage: null,
+        invalidCells: {},
       );
     } else {
       state = state.copyWith(errorMessage: 'Tej planszy nie da się rozwiązać.');
@@ -114,6 +132,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
             board: hintBoard,
             hintsUsed: state.hintsUsed + 1,
             errorMessage: null,
+            invalidCells: {},
           );
           return;
         }
@@ -132,6 +151,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
           List.generate(9, (_) => List.filled(9, false)),
         ),
         status: GameStatus.correctingOCR,
+        invalidCells: {},
       );
     } catch (e) {
       state = state.copyWith(

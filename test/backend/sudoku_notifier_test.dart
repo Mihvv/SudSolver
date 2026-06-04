@@ -72,12 +72,21 @@ void main() {
       expect(n.state.errorMessage, isNull);
     });
 
-    test('sets errorMessage for a conflicting value', () {
+    test('does not set errorMessage for a conflicting value', () {
       final repo = FakeRepository();
       final n = _notifierWithPuzzlePlaying(repo);
       n.selectCell(0, 2);
       n.updateSelectedCell(5);
-      expect(n.state.errorMessage, isNotNull);
+      expect(n.state.errorMessage, isNull);
+    });
+
+    test('clears invalidCells after editing a cell', () {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(n.state.copyWith(invalidCells: {(0, 2), (0, 0)}));
+      n.selectCell(0, 2);
+      n.updateSelectedCell(4);
+      expect(n.state.invalidCells, isEmpty);
     });
 
     test('does nothing when no cell is selected', () {
@@ -86,6 +95,49 @@ void main() {
       final before = n.state.board.grid[0][2];
       n.updateSelectedCell(4);
       expect(n.state.board.grid[0][2], before);
+    });
+  });
+
+  group('SudokuNotifier.validateBoard', () {
+    test('sets invalidCells and errorMessage when board has conflicts', () {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.selectCell(0, 2);
+      n.updateSelectedCell(5);
+      n.validateBoard();
+      expect(n.state.invalidCells, isNotEmpty);
+      expect(n.state.errorMessage, isNotNull);
+    });
+
+    test(
+      'clears invalidCells and errorMessage when board has no conflicts',
+      () {
+        final repo = FakeRepository();
+        final n = _notifierWithPuzzlePlaying(repo);
+        n.selectCell(0, 2);
+        n.updateSelectedCell(4);
+        n.validateBoard();
+        expect(n.state.invalidCells, isEmpty);
+        expect(n.state.errorMessage, isNull);
+      },
+    );
+
+    test('marks conflicting cells in both directions', () {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.selectCell(0, 2);
+      n.updateSelectedCell(5);
+      n.validateBoard();
+      expect(n.state.invalidCells.contains((0, 0)), isTrue);
+      expect(n.state.invalidCells.contains((0, 2)), isTrue);
+    });
+
+    test('does nothing harmful on an empty board', () {
+      final repo = FakeRepository();
+      final n = _makeNotifier(repo);
+      n.validateBoard();
+      expect(n.state.invalidCells, isEmpty);
+      expect(n.state.errorMessage, isNull);
     });
   });
 
@@ -103,14 +155,15 @@ void main() {
       n.confirmScannedBoard();
       expect(n.state.status, GameStatus.playing);
       expect(n.state.errorMessage, isNull);
+      expect(n.state.invalidCells, isEmpty);
     });
 
-    test('sets errorMessage when board is invalid', () {
+    test('sets errorMessage and invalidCells when board has conflicts', () {
       final repo = FakeRepository();
       final n = _makeNotifier(repo);
       final grid = List.generate(9, (_) => List.filled(9, 0));
       grid[0][0] = 5;
-      grid[0][1] = 5;
+      grid[0][1] = 5; // row conflict
       final board = SudokuBoard(
         grid,
         List.generate(9, (_) => List.filled(9, false)),
@@ -121,6 +174,7 @@ void main() {
       n.confirmScannedBoard();
       expect(n.state.status, GameStatus.correctingOCR);
       expect(n.state.errorMessage, isNotNull);
+      expect(n.state.invalidCells, containsAll([(0, 0), (0, 1)]));
     });
   });
 
@@ -131,6 +185,7 @@ void main() {
       n.solveBoard();
       expect(n.state.status, GameStatus.solved);
       expect(n.state.errorMessage, isNull);
+      expect(n.state.invalidCells, isEmpty);
     });
 
     test('saves a record with auto solve mode', () async {
@@ -166,6 +221,14 @@ void main() {
       expect(n.state.hintsUsed, 1);
     });
 
+    test('clears invalidCells after giving a hint', () {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(n.state.copyWith(invalidCells: {(1, 1)}));
+      n.giveHint();
+      expect(n.state.invalidCells, isEmpty);
+    });
+
     test('does nothing when canSolve is false', () {
       final repo = FakeRepository();
       final n = _makeNotifier(repo);
@@ -181,6 +244,14 @@ void main() {
       n.reset();
       expect(n.state.status, GameStatus.idle);
       expect(n.state.board.grid.expand((r) => r).every((v) => v == 0), isTrue);
+    });
+
+    test('clears invalidCells on reset', () {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(n.state.copyWith(invalidCells: {(0, 0), (0, 1)}));
+      n.reset();
+      expect(n.state.invalidCells, isEmpty);
     });
   });
 }
