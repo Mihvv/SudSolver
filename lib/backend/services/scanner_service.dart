@@ -1,24 +1,13 @@
-import 'dart:async';
-
 abstract class IScannerService {
-  Future<List<List<int>>> scanImage(String path);
+  /// Accepts a file path to an image and returns a 9x9 sudoku grid.
+  /// Throws [ScannerException] on failure.
+  Future<List<List<int>>> scanImage(String imagePath);
 }
 
-class MockScannerService implements IScannerService {
-  @override
-  Future<List<List<int>>> scanImage(String path) async {
-    await Future.delayed(const Duration(seconds: 2));
+class ScannerException implements Exception {
+  final String message;
+  const ScannerException(this.message);
 
-    return [
-      [5, 3, 0, 0, 7, 0, 0, 0, 0],
-      [6, 0, 0, 1, 9, 5, 0, 0, 0],
-      [0, 9, 8, 0, 0, 0, 0, 6, 0],
-      [8, 0, 0, 0, 6, 0, 0, 0, 3],
-      [4, 0, 0, 8, 0, 3, 0, 0, 1],
-      [7, 0, 0, 0, 2, 0, 0, 0, 6],
-      [0, 6, 0, 0, 0, 0, 2, 8, 0],
-      [0, 0, 0, 4, 1, 9, 0, 0, 5],
-      [0, 0, 0, 0, 8, 0, 0, 7, 9],
-    ];
-  }
+  @override
+  String toString() => 'ScannerException: $message';
 }
