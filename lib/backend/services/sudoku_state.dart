@@ -13,6 +13,7 @@ class SudokuState {
   final int hintsUsed;
   final Duration elapsed;
   final Set<(int, int)> invalidCells;
+  final String? sessionId;
 
   const SudokuState({
     required this.board,
@@ -23,6 +24,7 @@ class SudokuState {
     this.hintsUsed = 0,
     this.elapsed = Duration.zero,
     this.invalidCells = const {},
+    this.sessionId,
   });
 
   bool get hasSelection => selectedRow != null && selectedCol != null;
@@ -54,6 +56,7 @@ class SudokuState {
     int? hintsUsed,
     Duration? elapsed,
     Set<(int, int)>? invalidCells,
+    Object? sessionId = _keep,
   }) {
     return SudokuState(
       board: board ?? this.board,
@@ -70,6 +73,9 @@ class SudokuState {
       hintsUsed: hintsUsed ?? this.hintsUsed,
       elapsed: elapsed ?? this.elapsed,
       invalidCells: invalidCells ?? this.invalidCells,
+      sessionId: identical(sessionId, _keep)
+          ? this.sessionId
+          : sessionId as String?,
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 
 part 'sudoku_record.g.dart';
 
-enum SolveModeRecord { manual, auto, unsolved }
+enum SolveModeRecord { manual, auto, unsolved, inProgress }
 
 @HiveType(typeId: 0)
 @immutable

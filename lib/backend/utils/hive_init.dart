@@ -40,8 +40,12 @@ class _SolveModeAdapter extends TypeAdapter<SolveModeRecord> {
   final int typeId = 2;
 
   @override
-  SolveModeRecord read(BinaryReader reader) =>
-      SolveModeRecord.values[reader.readByte()];
+  SolveModeRecord read(BinaryReader reader) {
+    final index = reader.readByte();
+    // Guard against records written before inProgress was added.
+    if (index >= SolveModeRecord.values.length) return SolveModeRecord.unsolved;
+    return SolveModeRecord.values[index];
+  }
 
   @override
   void write(BinaryWriter writer, SolveModeRecord obj) =>
