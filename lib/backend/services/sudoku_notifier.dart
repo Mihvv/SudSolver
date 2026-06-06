@@ -11,12 +11,12 @@ import 'sudoku_solver.dart';
 import 'sudoku_validator.dart';
 
 final scannerServiceProvider = Provider<IScannerService>(
-  (_) => const MockScannerService(),
+      (_) => const MockScannerService(),
 );
 
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
-  ref,
-) {
+    ref,
+    ) {
   return SudokuNotifier(
     ref.read(sudokuRepositoryProvider),
     ref.read(scannerServiceProvider),
@@ -31,9 +31,8 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   Timer? _timer;
 
   SudokuNotifier(this._repository, this._scanner)
-    : super(SudokuState(board: SudokuBoard.empty()));
+      : super(SudokuState(board: SudokuBoard.empty()));
 
-  // Returns the active Hive key, generating one for new sessions.
   String get _sessionId =>
       state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
@@ -43,7 +42,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // changing user selected cell
   void updateSelectedCell(int value) {
     final r = state.selectedRow;
     final c = state.selectedCol;
@@ -52,7 +50,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
 
     final newBoard = state.board.copyWithCell(r, c, value);
 
-    // Detect manual completion
     if (SudokuValidator.isBoardComplete(newBoard)) {
       _stopTimer();
       _saveRecord(newBoard, solveMode: SolveModeRecord.manual);
@@ -72,7 +69,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     );
   }
 
-  // checking if board is valid
   void validateBoard() {
     final invalid = SudokuValidator.getInvalidCells(state.board);
     state = state.copyWith(
@@ -83,7 +79,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     );
   }
 
-  // confirm scanned board from camera
   void confirmScannedBoard() {
     final invalid = SudokuValidator.getInvalidCells(state.board);
     if (invalid.isNotEmpty) {
@@ -94,7 +89,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
       return;
     }
 
-    // Assign a session ID when the game officially starts.
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     state = state.copyWith(
       board: state.board.lock(),
@@ -108,7 +102,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _startTimer();
   }
 
-  // Auto-solve
   void solveBoard() {
     final solution = _solver.solve(state.board);
     if (solution != null) {
@@ -126,7 +119,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Hint
   void giveHint() {
     if (!state.canSolve) return;
 
@@ -152,7 +144,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Scan image
   Future<void> scanBoard(String imagePath) async {
     state = state.copyWith(status: GameStatus.scanning, errorMessage: null);
     try {
@@ -179,10 +170,13 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void resumeRecord(SudokuRecord record) {
-    final board = SudokuBoard(
-      record.solvedGrid!.map((r) => List<int>.from(r)).toList(),
-      record.initialGrid.map((r) => r.map((v) => v != 0).toList()).toList(),
-    );
+    final grid = (record.solvedGrid ?? record.initialGrid)
+        .map((r) => List<int>.from(r))
+        .toList();
+    final isFixed = record.initialGrid
+        .map((r) => r.map((v) => v != 0).toList())
+        .toList();
+    final board = SudokuBoard(grid, isFixed);
     state = SudokuState(
       board: board,
       status: GameStatus.playing,
@@ -193,12 +187,17 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _startTimer();
   }
 
+  /// Zapisuje aktualny postęp – wywołaj przed reset() gdy gra w toku.
+  void saveCurrentProgress() {
+    if (state.status != GameStatus.playing) return;
+    _saveRecord(state.board, solveMode: SolveModeRecord.inProgress);
+  }
+
   void reset() {
     _stopTimer();
     state = SudokuState(board: SudokuBoard.empty());
   }
 
-  // Timer
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -214,9 +213,9 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void _saveRecord(
-    SudokuBoard solvedBoard, {
-    required SolveModeRecord solveMode,
-  }) {
+      SudokuBoard solvedBoard, {
+        required SolveModeRecord solveMode,
+      }) {
     final record = SudokuRecord(
       id: _sessionId,
       scannedAt: DateTime.now(),
@@ -229,17 +228,12 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _repository.save(record).catchError((_) {});
   }
 
-  void _saveProgress() {
-    if (state.status != GameStatus.playing) return;
-    _saveRecord(state.board, solveMode: SolveModeRecord.inProgress);
-  }
-
   @visibleForTesting
   void debugSetState(SudokuState s) => state = s;
 
   @override
   void dispose() {
-    _saveProgress();
+    saveCurrentProgress();
     _timer?.cancel();
     super.dispose();
   }

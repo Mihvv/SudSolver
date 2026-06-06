@@ -27,23 +27,16 @@ class BoardConfirmationScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
             child: Text(
-              'Popraw ewentualne błędy skanowania, następnie zatwierdź planszę.',
-              style: TextStyle(color: Colors.grey),
+              state.errorMessage ?? 'Popraw ewentualne błędy skanowania, następnie zatwierdź planszę.',
+              style: TextStyle(
+                color: state.errorMessage != null ? Colors.red : Colors.grey,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
-          if (state.errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text(
-                state.errorMessage!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            ),
           Expanded(
             child: Center(
               child: SudokuGrid(state: state, notifier: notifier),
@@ -51,7 +44,7 @@ class BoardConfirmationScreen extends ConsumerWidget {
           ),
           NumberPad(notifier: notifier, isEditable: state.isEditable),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16,16,16,40),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
