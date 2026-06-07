@@ -114,19 +114,40 @@ void main() {
       expect(n.state.errorMessage, isNotNull);
     });
 
-    test('clears invalidCells and errorMessage when board has no conflicts', () {
-      final n = _notifierWithPuzzlePlaying(FakeRepository());
-      n.selectCell(0, 2);
-      n.updateSelectedCell(4);
-      n.validateBoard();
-      expect(n.state.invalidCells, isEmpty);
-      expect(n.state.errorMessage, isNull);
-    });
+    test(
+      'clears invalidCells and errorMessage when board has no conflicts',
+      () {
+        final n = _notifierWithPuzzlePlaying(FakeRepository());
+        n.selectCell(0, 2);
+        n.updateSelectedCell(4);
+        n.validateBoard();
+        expect(n.state.invalidCells, isEmpty);
+        expect(n.state.errorMessage, isNull);
+      },
+    );
 
-    test('marks conflicting cells in both directions', () {
+    test('marks only user-entered conflicting cells during playing', () {
       final n = _notifierWithPuzzlePlaying(FakeRepository());
       n.selectCell(0, 2);
       n.updateSelectedCell(5);
+      n.validateBoard();
+      expect(n.state.invalidCells.contains((0, 0)), isFalse);
+      expect(n.state.invalidCells.contains((0, 2)), isTrue);
+    });
+
+    test('marks all conflicting cells during correctingOCR', () {
+      final n = _makeNotifier(FakeRepository());
+      final grid = _puzzle.map((r) => List<int>.from(r)).toList();
+      grid[0][2] = 5;
+      n.debugSetState(
+        SudokuState(
+          board: SudokuBoard(
+            grid,
+            List.generate(9, (_) => List.filled(9, false)),
+          ),
+          status: GameStatus.correctingOCR,
+        ),
+      );
       n.validateBoard();
       expect(n.state.invalidCells.contains((0, 0)), isTrue);
       expect(n.state.invalidCells.contains((0, 2)), isTrue);
@@ -161,13 +182,15 @@ void main() {
       final grid = List.generate(9, (_) => List.filled(9, 0));
       grid[0][0] = 5;
       grid[0][1] = 5;
-      n.debugSetState(SudokuState(
-        board: SudokuBoard(
-          grid,
-          List.generate(9, (_) => List.filled(9, false)),
+      n.debugSetState(
+        SudokuState(
+          board: SudokuBoard(
+            grid,
+            List.generate(9, (_) => List.filled(9, false)),
+          ),
+          status: GameStatus.correctingOCR,
         ),
-        status: GameStatus.correctingOCR,
-      ));
+      );
       n.confirmScannedBoard();
       expect(n.state.status, GameStatus.correctingOCR);
       expect(n.state.errorMessage, isNotNull);
@@ -216,11 +239,15 @@ void main() {
   group('SudokuNotifier.giveHint', () {
     test('fills in one empty cell', () {
       final n = _notifierWithPuzzlePlaying(FakeRepository());
-      final emptyBefore =
-          n.state.board.grid.expand((r) => r).where((v) => v == 0).length;
+      final emptyBefore = n.state.board.grid
+          .expand((r) => r)
+          .where((v) => v == 0)
+          .length;
       n.giveHint();
-      final emptyAfter =
-          n.state.board.grid.expand((r) => r).where((v) => v == 0).length;
+      final emptyAfter = n.state.board.grid
+          .expand((r) => r)
+          .where((v) => v == 0)
+          .length;
       expect(emptyAfter, emptyBefore - 1);
     });
 
@@ -257,6 +284,40 @@ void main() {
       n.debugSetState(n.state.copyWith(invalidCells: {(0, 0), (0, 1)}));
       n.reset();
       expect(n.state.invalidCells, isEmpty);
+    });
+  });
+  group('SudokuNotifier.saveCurrentProgress', () {
+    test('saves record with inProgress mode and non-null solveTime', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(
+        n.state.copyWith(elapsed: const Duration(minutes: 2, seconds: 30)),
+      );
+      n.saveCurrentProgress();
+      await Future.microtask(() {});
+      expect(repo.saved, hasLength(1));
+      final record = repo.saved.first;
+      expect(record.solveMode, SolveModeRecord.inProgress);
+      expect(record.solveTime, const Duration(minutes: 2, seconds: 30));
+    });
+
+    test('does nothing when status is not playing', () async {
+      final repo = FakeRepository();
+      final n = _makeNotifier(repo);
+      n.saveCurrentProgress();
+      await Future.microtask(() {});
+      expect(repo.saved, isEmpty);
+    });
+
+    test('dispose saves elapsed time when game is in progress', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(n.state.copyWith(elapsed: const Duration(seconds: 45)));
+      n.dispose();
+      await Future.microtask(() {});
+      expect(repo.saved, hasLength(1));
+      expect(repo.saved.first.solveTime, const Duration(seconds: 45));
+      expect(repo.saved.first.solveMode, SolveModeRecord.inProgress);
     });
   });
 }

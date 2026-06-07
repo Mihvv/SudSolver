@@ -11,12 +11,12 @@ import 'sudoku_solver.dart';
 import 'sudoku_validator.dart';
 
 final scannerServiceProvider = Provider<IScannerService>(
-      (_) => const MockScannerService(),
+  (_) => const MockScannerService(),
 );
 
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
-    ref,
-    ) {
+  ref,
+) {
   return SudokuNotifier(
     ref.read(sudokuRepositoryProvider),
     ref.read(scannerServiceProvider),
@@ -31,7 +31,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   Timer? _timer;
 
   SudokuNotifier(this._repository, this._scanner)
-      : super(SudokuState(board: SudokuBoard.empty()));
+    : super(SudokuState(board: SudokuBoard.empty()));
 
   String get _sessionId =>
       state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -70,7 +70,14 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void validateBoard() {
-    final invalid = SudokuValidator.getInvalidCells(state.board);
+    final allInvalid = SudokuValidator.getInvalidCells(state.board);
+
+    final invalid = state.status == GameStatus.playing
+        ? allInvalid
+              .where((cell) => !state.board.isFixed[cell.$1][cell.$2])
+              .toSet()
+        : allInvalid;
+
     state = state.copyWith(
       invalidCells: invalid,
       errorMessage: invalid.isEmpty
@@ -213,16 +220,19 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void _saveRecord(
-      SudokuBoard solvedBoard, {
-        required SolveModeRecord solveMode,
-      }) {
+    SudokuBoard solvedBoard, {
+    required SolveModeRecord solveMode,
+  }) {
+    final shouldSaveTime =
+        solveMode == SolveModeRecord.manual ||
+        solveMode == SolveModeRecord.inProgress;
     final record = SudokuRecord(
       id: _sessionId,
       scannedAt: DateTime.now(),
       initialGrid: state.board.grid,
       solvedGrid: solvedBoard.grid,
       solveMode: solveMode,
-      solveTime: solveMode == SolveModeRecord.manual ? state.elapsed : null,
+      solveTime: shouldSaveTime ? state.elapsed : null,
       hintsUsed: state.hintsUsed,
     );
     _repository.save(record).catchError((_) {});
