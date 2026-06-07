@@ -12,6 +12,8 @@ class SudokuState {
   final int? selectedCol;
   final int hintsUsed;
   final Duration elapsed;
+  final Set<(int, int)> invalidCells;
+  final String? sessionId;
 
   const SudokuState({
     required this.board,
@@ -21,6 +23,8 @@ class SudokuState {
     this.selectedCol,
     this.hintsUsed = 0,
     this.elapsed = Duration.zero,
+    this.invalidCells = const {},
+    this.sessionId,
   });
 
   bool get hasSelection => selectedRow != null && selectedCol != null;
@@ -34,6 +38,8 @@ class SudokuState {
       errorMessage == null;
 
   bool get isScanning => status == GameStatus.scanning;
+
+  bool isCellInvalid(int r, int c) => invalidCells.contains((r, c));
 
   bool canEditCell(int row, int col) {
     if (status == GameStatus.correctingOCR) return true;
@@ -49,6 +55,8 @@ class SudokuState {
     Object? selectedCol = _keep,
     int? hintsUsed,
     Duration? elapsed,
+    Set<(int, int)>? invalidCells,
+    Object? sessionId = _keep,
   }) {
     return SudokuState(
       board: board ?? this.board,
@@ -64,6 +72,10 @@ class SudokuState {
           : selectedCol as int?,
       hintsUsed: hintsUsed ?? this.hintsUsed,
       elapsed: elapsed ?? this.elapsed,
+      invalidCells: invalidCells ?? this.invalidCells,
+      sessionId: identical(sessionId, _keep)
+          ? this.sessionId
+          : sessionId as String?,
     );
   }
 }

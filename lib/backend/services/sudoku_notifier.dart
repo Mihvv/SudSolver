@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudsolver/backend/services/scanner_service.dart';
+import 'package:sudsolver/backend/services/mock_scanner_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
@@ -9,30 +10,38 @@ import 'sudoku_state.dart';
 import 'sudoku_solver.dart';
 import 'sudoku_validator.dart';
 
+final scannerServiceProvider = Provider<IScannerService>(
+      (_) => const MockScannerService(),
+);
+
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
-  ref,
-) {
-  return SudokuNotifier(ref.read(sudokuRepositoryProvider));
+    ref,
+    ) {
+  return SudokuNotifier(
+    ref.read(sudokuRepositoryProvider),
+    ref.read(scannerServiceProvider),
+  );
 });
 
 class SudokuNotifier extends StateNotifier<SudokuState> {
   final SudokuSolver _solver = SudokuSolver();
   final ISudokuRepository _repository;
-  final MockScannerService _scanner = MockScannerService();
+  final IScannerService _scanner;
 
   Timer? _timer;
 
-  SudokuNotifier(this._repository)
-    : super(SudokuState(board: SudokuBoard.empty()));
+  SudokuNotifier(this._repository, this._scanner)
+      : super(SudokuState(board: SudokuBoard.empty()));
 
-  // Cell selection
+  String get _sessionId =>
+      state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
   void selectCell(int row, int col) {
     if (state.canEditCell(row, col)) {
       state = state.copyWith(selectedRow: row, selectedCol: col);
     }
   }
 
-  // Enter a digit
   void updateSelectedCell(int value) {
     final r = state.selectedRow;
     final c = state.selectedCol;
@@ -41,62 +50,75 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
 
     final newBoard = state.board.copyWithCell(r, c, value);
 
-    String? error;
-    if (state.status == GameStatus.playing && value != 0) {
-      if (!SudokuValidator.isValidMove(state.board, r, c, value)) {
-        error = 'Cyfra $value narusza zasady Sudoku!';
-      }
-    }
-
-    // Detect manual completion
-    if (error == null && SudokuValidator.isBoardComplete(newBoard)) {
+    if (SudokuValidator.isBoardComplete(newBoard)) {
       _stopTimer();
-      _saveRecord(newBoard, solvedManually: true);
+      _saveRecord(newBoard, solveMode: SolveModeRecord.manual);
       state = state.copyWith(
         board: newBoard,
         status: GameStatus.solved,
         errorMessage: null,
+        invalidCells: {},
       );
       return;
     }
 
-    state = state.copyWith(board: newBoard, errorMessage: error);
+    state = state.copyWith(
+      board: newBoard,
+      invalidCells: {},
+      errorMessage: null,
+    );
   }
 
-  // Confirm board after OCR
+  void validateBoard() {
+    final invalid = SudokuValidator.getInvalidCells(state.board);
+    state = state.copyWith(
+      invalidCells: invalid,
+      errorMessage: invalid.isEmpty
+          ? null
+          : 'Plansza zawiera błędy w ${invalid.length} komórkach.',
+    );
+  }
+
   void confirmScannedBoard() {
-    if (SudokuValidator.isBoardValid(state.board)) {
+    final invalid = SudokuValidator.getInvalidCells(state.board);
+    if (invalid.isNotEmpty) {
       state = state.copyWith(
-        board: state.board.lock(),
-        status: GameStatus.playing,
-        errorMessage: null,
-        selectedRow: null,
-        selectedCol: null,
+        invalidCells: invalid,
+        errorMessage: 'Plansza zawiera błędy — popraw zaznaczone komórki.',
       );
-      _startTimer();
-    } else {
-      state = state.copyWith(errorMessage: 'Plansza zawiera błędy!');
+      return;
     }
+
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    state = state.copyWith(
+      board: state.board.lock(),
+      status: GameStatus.playing,
+      errorMessage: null,
+      invalidCells: {},
+      selectedRow: null,
+      selectedCol: null,
+      sessionId: id,
+    );
+    _startTimer();
   }
 
-  // Auto-solve
   void solveBoard() {
     final solution = _solver.solve(state.board);
     if (solution != null) {
       _stopTimer();
       final solvedBoard = SudokuBoard(solution, state.board.isFixed);
-      _saveRecord(solvedBoard, solvedManually: false);
+      _saveRecord(solvedBoard, solveMode: SolveModeRecord.auto);
       state = state.copyWith(
         board: solvedBoard,
         status: GameStatus.solved,
         errorMessage: null,
+        invalidCells: {},
       );
     } else {
       state = state.copyWith(errorMessage: 'Tej planszy nie da się rozwiązać.');
     }
   }
 
-  // Hint
   void giveHint() {
     if (!state.canSolve) return;
 
@@ -114,6 +136,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
             board: hintBoard,
             hintsUsed: state.hintsUsed + 1,
             errorMessage: null,
+            invalidCells: {},
           );
           return;
         }
@@ -121,7 +144,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
-  // Scan image
   Future<void> scanBoard(String imagePath) async {
     state = state.copyWith(status: GameStatus.scanning, errorMessage: null);
     try {
@@ -132,22 +154,50 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
           List.generate(9, (_) => List.filled(9, false)),
         ),
         status: GameStatus.correctingOCR,
+        invalidCells: {},
+      );
+    } on ScannerException catch (e) {
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Błąd skanowania: ${e.message}',
       );
     } catch (e) {
       state = state.copyWith(
         status: GameStatus.error,
-        errorMessage: 'Błąd skanowania: ${e.toString()}',
+        errorMessage: 'Nieoczekiwany błąd: ${e.toString()}',
       );
     }
   }
 
-  // Reset
+  void resumeRecord(SudokuRecord record) {
+    final grid = (record.solvedGrid ?? record.initialGrid)
+        .map((r) => List<int>.from(r))
+        .toList();
+    final isFixed = record.initialGrid
+        .map((r) => r.map((v) => v != 0).toList())
+        .toList();
+    final board = SudokuBoard(grid, isFixed);
+    state = SudokuState(
+      board: board,
+      status: GameStatus.playing,
+      elapsed: record.solveTime ?? Duration.zero,
+      hintsUsed: record.hintsUsed,
+      sessionId: record.id,
+    );
+    _startTimer();
+  }
+
+  /// Zapisuje aktualny postęp – wywołaj przed reset() gdy gra w toku.
+  void saveCurrentProgress() {
+    if (state.status != GameStatus.playing) return;
+    _saveRecord(state.board, solveMode: SolveModeRecord.inProgress);
+  }
+
   void reset() {
     _stopTimer();
     state = SudokuState(board: SudokuBoard.empty());
   }
 
-  // Timer
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -162,21 +212,20 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _timer = null;
   }
 
-  // Save to history
-  Future<void> _saveRecord(
-    SudokuBoard solvedBoard, {
-    required bool solvedManually,
-  }) async {
+  void _saveRecord(
+      SudokuBoard solvedBoard, {
+        required SolveModeRecord solveMode,
+      }) {
     final record = SudokuRecord(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: _sessionId,
       scannedAt: DateTime.now(),
       initialGrid: state.board.grid,
       solvedGrid: solvedBoard.grid,
-      solveMode: solvedManually ? SolveModeRecord.manual : SolveModeRecord.auto,
-      solveTime: solvedManually ? state.elapsed : null,
+      solveMode: solveMode,
+      solveTime: solveMode == SolveModeRecord.manual ? state.elapsed : null,
       hintsUsed: state.hintsUsed,
     );
-    await _repository.save(record);
+    _repository.save(record).catchError((_) {});
   }
 
   @visibleForTesting
@@ -184,6 +233,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
 
   @override
   void dispose() {
+    saveCurrentProgress();
     _timer?.cancel();
     super.dispose();
   }

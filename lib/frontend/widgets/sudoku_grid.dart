@@ -28,24 +28,27 @@ class SudokuGrid extends StatelessWidget {
             final value = state.board.grid[r][c];
             final isFixed = state.board.isFixed[r][c];
             final isSelected = state.isSelected(r, c);
+            final isInvalid = state.isCellInvalid(r, c);
             final canEdit = state.canEditCell(r, c);
 
-            // Podświetlanie wiersza, kolumny i bloku 3x3
-            final isHighlighted =
-                state.hasSelection &&
+            final isHighlighted = state.hasSelection &&
                 !isSelected &&
                 (state.selectedRow == r ||
                     state.selectedCol == c ||
                     ((r ~/ 3) == (state.selectedRow! ~/ 3) &&
                         (c ~/ 3) == (state.selectedCol! ~/ 3)));
 
-            Color bgColor = Colors.white;
-            if (isSelected) {
+            Color bgColor;
+            if (isInvalid) {
+              bgColor = Colors.red.shade100;
+            } else if (isSelected) {
               bgColor = colorScheme.primaryContainer;
             } else if (isHighlighted) {
               bgColor = colorScheme.primaryContainer.withOpacity(0.25);
             } else if ((r ~/ 3 + c ~/ 3) % 2 == 0) {
               bgColor = Colors.grey.shade50;
+            } else {
+              bgColor = Colors.white;
             }
 
             return GestureDetector(
@@ -76,15 +79,18 @@ class SudokuGrid extends StatelessWidget {
                   child: value == 0
                       ? null
                       : Text(
-                          value.toString(),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: isFixed
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isFixed ? Colors.black : colorScheme.primary,
-                          ),
-                        ),
+                    value.toString(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight:
+                      isFixed ? FontWeight.bold : FontWeight.normal,
+                      color: isInvalid
+                          ? Colors.red.shade700
+                          : isFixed
+                          ? Colors.black
+                          : colorScheme.primary,
+                    ),
+                  ),
                 ),
               ),
             );
