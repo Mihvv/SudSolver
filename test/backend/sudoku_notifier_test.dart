@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
 import 'package:sudsolver/backend/models/sudoku_record.dart';
 import 'package:sudsolver/backend/repositories/sudoku_repository.dart';
-import 'package:sudsolver/backend/services/scanner_service.dart';
-import 'package:sudsolver/backend/services/sudoku_notifier.dart';
-import 'package:sudsolver/backend/services/sudoku_state.dart';
+import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
+import 'package:sudsolver/backend/providers/sudoku_notifier.dart';
+import 'package:sudsolver/backend/providers/sudoku_state.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> saved = [];

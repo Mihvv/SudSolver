@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../backend/services/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_notifier.dart';
 
 class NumberPad extends StatelessWidget {
   final SudokuNotifier notifier;
