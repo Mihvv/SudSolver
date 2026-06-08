@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
-import 'package:sudsolver/backend/services/scanner/mock_scanner_service.dart';
+import 'package:sudsolver/backend/services/scanner/http_scanner_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
@@ -12,7 +12,7 @@ import '../logic/sudoku_solver.dart';
 import '../logic/sudoku_validator.dart';
 
 final scannerServiceProvider = Provider<IScannerService>(
-  (_) => const MockScannerService(),
+  (_) => const HttpScannerService(baseUrl: 'https://lmhi.7o7.cx/sudsolver'),
 );
 
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
