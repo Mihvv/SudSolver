@@ -1,10 +1,14 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
 import 'package:sudsolver/backend/models/sudoku_record.dart';
 import 'package:sudsolver/backend/repositories/sudoku_repository.dart';
 import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
+import 'package:sudsolver/backend/services/auth/auth_service.dart';
+import 'package:sudsolver/backend/models/app_user.dart';
 import 'package:sudsolver/backend/providers/sudoku_notifier.dart';
 import 'package:sudsolver/backend/providers/sudoku_state.dart';
+import 'package:sudsolver/backend/providers/auth_notifier.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> saved = [];
@@ -31,8 +35,38 @@ class FakeScanner implements IScannerService {
   }
 }
 
-SudokuNotifier _makeNotifier(FakeRepository repo, [IScannerService? scanner]) =>
-    SudokuNotifier(repo, scanner ?? FakeScanner());
+class FakeAuthService implements IAuthService {
+  AppUser? user;
+
+  FakeAuthService({this.user});
+
+  @override
+  Stream<AppUser?> get authStateChanges => Stream.value(user);
+
+  @override
+  AppUser? get currentUser => user;
+
+  @override
+  Future<AppUser?> signInWithGoogle() async => user;
+
+  @override
+  Future<void> signOut() async => user = null;
+}
+
+SudokuNotifier _makeNotifier(
+  FakeRepository repo, {
+  IScannerService? scanner,
+  AppUser? authUser,
+}) {
+  final container = ProviderContainer(
+    overrides: [
+      sudokuRepositoryProvider.overrideWithValue(repo),
+      scannerServiceProvider.overrideWithValue(scanner ?? FakeScanner()),
+      authServiceProvider.overrideWithValue(FakeAuthService(user: authUser)),
+    ],
+  );
+  return container.read(sudokuProvider.notifier);
+}
 
 final _puzzle = [
   [5, 3, 0, 0, 7, 0, 0, 0, 0],
@@ -46,8 +80,11 @@ final _puzzle = [
   [0, 0, 0, 0, 8, 0, 0, 7, 9],
 ];
 
-SudokuNotifier _notifierWithPuzzlePlaying(FakeRepository repo) {
-  final notifier = _makeNotifier(repo);
+SudokuNotifier _notifierWithPuzzlePlaying(
+  FakeRepository repo, {
+  AppUser? authUser,
+}) {
+  final notifier = _makeNotifier(repo, authUser: authUser);
   final board = SudokuBoard(
     _puzzle.map((r) => List<int>.from(r)).toList(),
     List.generate(9, (_) => List.filled(9, false)),
@@ -201,7 +238,7 @@ void main() {
   group('SudokuNotifier.scanBoard', () {
     test('populates board and sets correctingOCR on success', () async {
       final scanner = FakeScanner()..result = _puzzle;
-      final n = _makeNotifier(FakeRepository(), scanner);
+      final n = _makeNotifier(FakeRepository(), scanner: scanner);
       await n.scanBoard('fake/path.jpg');
       expect(n.state.status, GameStatus.correctingOCR);
       expect(n.state.board.grid, _puzzle);
@@ -210,7 +247,7 @@ void main() {
 
     test('sets error status on ScannerException', () async {
       final scanner = FakeScanner()..shouldThrow = true;
-      final n = _makeNotifier(FakeRepository(), scanner);
+      final n = _makeNotifier(FakeRepository(), scanner: scanner);
       await n.scanBoard('fake/path.jpg');
       expect(n.state.status, GameStatus.error);
       expect(n.state.errorMessage, contains('scan failed'));
@@ -233,6 +270,23 @@ void main() {
       await Future.microtask(() {});
       expect(repo.saved, hasLength(1));
       expect(repo.saved.first.solveMode, SolveModeRecord.auto);
+    });
+
+    test('saved record has null userId when not logged in', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.solveBoard();
+      await Future.microtask(() {});
+      expect(repo.saved.first.userId, isNull);
+    });
+
+    test('saved record has correct userId when logged in', () async {
+      final repo = FakeRepository();
+      const user = AppUser(uid: 'test-uid', displayName: 'Test');
+      final n = _notifierWithPuzzlePlaying(repo, authUser: user);
+      n.solveBoard();
+      await Future.microtask(() {});
+      expect(repo.saved.first.userId, 'test-uid');
     });
   });
 
@@ -286,6 +340,7 @@ void main() {
       expect(n.state.invalidCells, isEmpty);
     });
   });
+
   group('SudokuNotifier.saveCurrentProgress', () {
     test('saves record with inProgress mode and non-null solveTime', () async {
       final repo = FakeRepository();
