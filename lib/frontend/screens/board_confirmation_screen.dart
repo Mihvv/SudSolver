@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../backend/services/sudoku_notifier.dart';
-import '../../backend/services/sudoku_state.dart';
+import '../../backend/providers/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_state.dart';
 import '../widgets/sudoku_grid.dart';
 import '../widgets/number_pad.dart';
 import 'solve_screen.dart';
@@ -30,7 +30,8 @@ class BoardConfirmationScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
             child: Text(
-              state.errorMessage ?? 'Popraw ewentualne błędy skanowania, następnie zatwierdź planszę.',
+              state.errorMessage ??
+                  'Popraw ewentualne błędy skanowania, następnie zatwierdź planszę.',
               style: TextStyle(
                 color: state.errorMessage != null ? Colors.red : Colors.grey,
               ),
@@ -44,7 +45,7 @@ class BoardConfirmationScreen extends ConsumerWidget {
           ),
           NumberPad(notifier: notifier, isEditable: state.isEditable),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16,16,16,40),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(

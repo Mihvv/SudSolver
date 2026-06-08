@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../backend/services/sudoku_notifier.dart';
-import '../../backend/services/sudoku_state.dart';
+import '../../backend/providers/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_state.dart';
 
 class SudokuGrid extends StatelessWidget {
   final SudokuState state;
@@ -31,7 +31,8 @@ class SudokuGrid extends StatelessWidget {
             final isInvalid = state.isCellInvalid(r, c);
             final canEdit = state.canEditCell(r, c);
 
-            final isHighlighted = state.hasSelection &&
+            final isHighlighted =
+                state.hasSelection &&
                 !isSelected &&
                 (state.selectedRow == r ||
                     state.selectedCol == c ||
@@ -79,18 +80,19 @@ class SudokuGrid extends StatelessWidget {
                   child: value == 0
                       ? null
                       : Text(
-                    value.toString(),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                      isFixed ? FontWeight.bold : FontWeight.normal,
-                      color: isInvalid
-                          ? Colors.red.shade700
-                          : isFixed
-                          ? Colors.black
-                          : colorScheme.primary,
-                    ),
-                  ),
+                          value.toString(),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: isFixed
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isInvalid
+                                ? Colors.red.shade700
+                                : isFixed
+                                ? Colors.black
+                                : colorScheme.primary,
+                          ),
+                        ),
                 ),
               ),
             );

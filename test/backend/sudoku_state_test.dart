@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
-import 'package:sudsolver/backend/services/sudoku_state.dart';
+import 'package:sudsolver/backend/providers/sudoku_state.dart';
 
 void main() {
   group('SudokuState', () {

@@ -24,7 +24,7 @@ class EditPhotoScreen extends StatelessWidget {
         children: [
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16,16,16,40),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
               child: Image.file(
                 imageFile,
                 fit: BoxFit.contain,

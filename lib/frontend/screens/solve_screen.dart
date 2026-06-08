@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../backend/services/sudoku_notifier.dart';
-import '../../backend/services/sudoku_state.dart';
+import '../../backend/providers/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_state.dart';
 import '../widgets/sudoku_grid.dart';
 import '../widgets/number_pad.dart';
 
@@ -66,7 +66,10 @@ class _SolveScreenState extends ConsumerState<SolveScreen> {
             child: Center(
               child: Text(
                 _formatTime(state.elapsed),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -83,10 +86,10 @@ class _SolveScreenState extends ConsumerState<SolveScreen> {
             alignment: Alignment.center,
             child: showBanner
                 ? Text(
-              bannerText,
-              style: TextStyle(color: textColor, fontSize: 13),
-              textAlign: TextAlign.center,
-            )
+                    bannerText,
+                    style: TextStyle(color: textColor, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  )
                 : null,
           ),
           if (isSolved)
@@ -116,7 +119,9 @@ class _SolveScreenState extends ConsumerState<SolveScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: state.canSolve ? () => notifier.giveHint() : null,
+                          onPressed: state.canSolve
+                              ? () => notifier.giveHint()
+                              : null,
                           icon: const Icon(Icons.lightbulb_outline, size: 18),
                           label: const Text('PODPOWIEDŹ'),
                           style: OutlinedButton.styleFrom(
@@ -141,7 +146,9 @@ class _SolveScreenState extends ConsumerState<SolveScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton(
-                          onPressed: state.canSolve ? () => notifier.solveBoard() : null,
+                          onPressed: state.canSolve
+                              ? () => notifier.solveBoard()
+                              : null,
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),

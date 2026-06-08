@@ -28,7 +28,11 @@ class BoardViewScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (record.solveTime != null) ...[
-                    const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.timer_outlined,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _formatTime(record.solveTime!),
@@ -37,7 +41,11 @@ class BoardViewScreen extends StatelessWidget {
                     const SizedBox(width: 16),
                   ],
                   if (record.hintsUsed > 0) ...[
-                    const Icon(Icons.lightbulb_outline, size: 16, color: Colors.grey),
+                    const Icon(
+                      Icons.lightbulb_outline,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Podpowiedzi: ${record.hintsUsed}',
@@ -56,9 +64,9 @@ class BoardViewScreen extends StatelessWidget {
                   child: GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 9,
-                    ),
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 9,
+                        ),
                     itemCount: 81,
                     itemBuilder: (context, index) {
                       final r = index ~/ 9;
@@ -104,17 +112,17 @@ class BoardViewScreen extends StatelessWidget {
                           child: value == 0
                               ? null
                               : Text(
-                            value.toString(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: fixed
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: fixed
-                                  ? Colors.black
-                                  : colorScheme.primary,
-                            ),
-                          ),
+                                  value.toString(),
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: fixed
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: fixed
+                                        ? Colors.black
+                                        : colorScheme.primary,
+                                  ),
+                                ),
                         ),
                       );
                     },
