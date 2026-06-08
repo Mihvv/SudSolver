@@ -6,6 +6,7 @@ import 'package:sudsolver/backend/services/scanner/mock_scanner_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
+import '../providers/auth_notifier.dart';
 import 'sudoku_state.dart';
 import '../logic/sudoku_solver.dart';
 import '../logic/sudoku_validator.dart';
@@ -20,6 +21,7 @@ final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
   return SudokuNotifier(
     ref.read(sudokuRepositoryProvider),
     ref.read(scannerServiceProvider),
+    ref,
   );
 });
 
@@ -27,10 +29,11 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   final SudokuSolver _solver = SudokuSolver();
   final ISudokuRepository _repository;
   final IScannerService _scanner;
+  final Ref _ref;
 
   Timer? _timer;
 
-  SudokuNotifier(this._repository, this._scanner)
+  SudokuNotifier(this._repository, this._scanner, this._ref)
     : super(SudokuState(board: SudokuBoard.empty()));
 
   String get _sessionId =>
@@ -194,7 +197,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _startTimer();
   }
 
-  /// Zapisuje aktualny postęp – wywołaj przed reset() gdy gra w toku.
   void saveCurrentProgress() {
     if (state.status != GameStatus.playing) return;
     _saveRecord(state.board, solveMode: SolveModeRecord.inProgress);
@@ -223,9 +225,12 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     SudokuBoard solvedBoard, {
     required SolveModeRecord solveMode,
   }) {
+    final userId = _ref.read(currentUserProvider)?.uid;
+
     final shouldSaveTime =
         solveMode == SolveModeRecord.manual ||
         solveMode == SolveModeRecord.inProgress;
+
     final record = SudokuRecord(
       id: _sessionId,
       scannedAt: DateTime.now(),
@@ -234,6 +239,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
       solveMode: solveMode,
       solveTime: shouldSaveTime ? state.elapsed : null,
       hintsUsed: state.hintsUsed,
+      userId: userId,
     );
     _repository.save(record).catchError((_) {});
   }
