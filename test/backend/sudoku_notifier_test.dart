@@ -10,8 +10,6 @@ import 'package:sudsolver/backend/providers/sudoku_notifier.dart';
 import 'package:sudsolver/backend/providers/sudoku_state.dart';
 import 'package:sudsolver/backend/providers/auth_notifier.dart';
 
-// ─── Fakes ────────────────────────────────────────────────────────────────────
-
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> saved = [];
 
@@ -37,8 +35,6 @@ class FakeScanner implements IScannerService {
   }
 }
 
-/// Auth service który zawsze zwraca niezalogowanego użytkownika.
-/// Możesz podmienić [user] na konkretnego AppUser w testach auth.
 class FakeAuthService implements IAuthService {
   AppUser? user;
 
@@ -57,10 +53,6 @@ class FakeAuthService implements IAuthService {
   Future<void> signOut() async => user = null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/// Tworzy ProviderContainer z podmienionymi zależnościami i zwraca notifier.
-/// [authUser] – null oznacza niezalogowanego (domyślnie).
 SudokuNotifier _makeNotifier(
   FakeRepository repo, {
   IScannerService? scanner,
@@ -73,7 +65,6 @@ SudokuNotifier _makeNotifier(
       authServiceProvider.overrideWithValue(FakeAuthService(user: authUser)),
     ],
   );
-  // Odczytujemy notifier przez container – Ref jest zarządzany wewnętrznie.
   return container.read(sudokuProvider.notifier);
 }
 
@@ -101,8 +92,6 @@ SudokuNotifier _notifierWithPuzzlePlaying(
   notifier.debugSetState(SudokuState(board: board, status: GameStatus.playing));
   return notifier;
 }
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
 
 void main() {
   group('SudokuNotifier.selectCell', () {

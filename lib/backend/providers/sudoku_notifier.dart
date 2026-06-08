@@ -225,7 +225,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     SudokuBoard solvedBoard, {
     required SolveModeRecord solveMode,
   }) {
-    final userId = _ref.read(currentUserProvider)?.uid;
+    final userId = _ref.read(authServiceProvider).currentUser?.uid;
 
     final shouldSaveTime =
         solveMode == SolveModeRecord.manual ||
