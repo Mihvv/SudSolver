@@ -2,11 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'scanner_service.dart';
 
-/// Produkcyjna implementacja [IScannerService].
-/// Wysyła zdjęcie do REST API i zwraca rozpoznaną siatkę 9×9.
 class HttpScannerService implements IScannerService {
   final String baseUrl;
   final Duration timeout;
@@ -26,7 +25,13 @@ class HttpScannerService implements IScannerService {
     final uri = Uri.parse('$baseUrl/recognize');
 
     final request = http.MultipartRequest('POST', uri)
-      ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+      ..files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          imagePath,
+          contentType: MediaType('image', _extensionToSubtype(imagePath)),
+        ),
+      );
 
     final http.StreamedResponse streamed;
     try {
@@ -49,6 +54,17 @@ class HttpScannerService implements IScannerService {
     }
 
     return _parseGrid(body);
+  }
+
+  static String _extensionToSubtype(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    return switch (ext) {
+      'jpg' || 'jpeg' => 'jpeg',
+      'png' => 'png',
+      'webp' => 'webp',
+      'heic' => 'heic',
+      _ => 'jpeg',
+    };
   }
 
   List<List<int>> _parseGrid(String body) {
