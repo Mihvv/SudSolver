@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../backend/services/history_notifier.dart';
-import '../../backend/services/sudoku_notifier.dart';
+import '../../backend/providers/history_notifier.dart';
+import '../../backend/providers/sudoku_notifier.dart';
 import '../../backend/models/sudoku_record.dart';
 import 'board_view_screen.dart';
 import 'solve_screen.dart';
@@ -58,20 +58,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ref.read(historyProvider.notifier).deleteRecord(record.id),
             onView: record.solvedGrid != null
                 ? () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BoardViewScreen(record: record),
-              ),
-            )
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BoardViewScreen(record: record),
+                    ),
+                  )
                 : null,
             onResume: record.solvedGrid != null
                 ? () {
-              ref.read(sudokuProvider.notifier).resumeRecord(record);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SolveScreen()),
-              );
-            }
+                    ref.read(sudokuProvider.notifier).resumeRecord(record);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SolveScreen()),
+                    );
+                  }
                 : null,
           );
         },
@@ -106,12 +106,21 @@ class _HistoryCard extends StatelessWidget {
 
     final (icon, color, label) = switch (record.solveMode) {
       SolveModeRecord.manual => (Icons.person_outline, Colors.green, 'Ręcznie'),
-      SolveModeRecord.auto =>
-      (Icons.auto_fix_high, Colors.orange, 'Automatycznie'),
-      SolveModeRecord.inProgress =>
-      (Icons.pause_circle_outline, Colors.blue, 'W trakcie'),
-      SolveModeRecord.unsolved =>
-      (Icons.cancel_outlined, Colors.grey, 'Nierozwiązane'),
+      SolveModeRecord.auto => (
+        Icons.auto_fix_high,
+        Colors.orange,
+        'Automatycznie',
+      ),
+      SolveModeRecord.inProgress => (
+        Icons.pause_circle_outline,
+        Colors.blue,
+        'W trakcie',
+      ),
+      SolveModeRecord.unsolved => (
+        Icons.cancel_outlined,
+        Colors.grey,
+        'Nierozwiązane',
+      ),
     };
 
     return Card(

@@ -1,10 +1,14 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
 import 'package:sudsolver/backend/models/sudoku_record.dart';
 import 'package:sudsolver/backend/repositories/sudoku_repository.dart';
-import 'package:sudsolver/backend/services/scanner_service.dart';
-import 'package:sudsolver/backend/services/sudoku_notifier.dart';
-import 'package:sudsolver/backend/services/sudoku_state.dart';
+import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
+import 'package:sudsolver/backend/services/auth/auth_service.dart';
+import 'package:sudsolver/backend/models/app_user.dart';
+import 'package:sudsolver/backend/providers/sudoku_notifier.dart';
+import 'package:sudsolver/backend/providers/sudoku_state.dart';
+import 'package:sudsolver/backend/providers/auth_notifier.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> saved = [];
@@ -31,8 +35,38 @@ class FakeScanner implements IScannerService {
   }
 }
 
-SudokuNotifier _makeNotifier(FakeRepository repo, [IScannerService? scanner]) =>
-    SudokuNotifier(repo, scanner ?? FakeScanner());
+class FakeAuthService implements IAuthService {
+  AppUser? user;
+
+  FakeAuthService({this.user});
+
+  @override
+  Stream<AppUser?> get authStateChanges => Stream.value(user);
+
+  @override
+  AppUser? get currentUser => user;
+
+  @override
+  Future<AppUser?> signInWithGoogle() async => user;
+
+  @override
+  Future<void> signOut() async => user = null;
+}
+
+SudokuNotifier _makeNotifier(
+  FakeRepository repo, {
+  IScannerService? scanner,
+  AppUser? authUser,
+}) {
+  final container = ProviderContainer(
+    overrides: [
+      sudokuRepositoryProvider.overrideWithValue(repo),
+      scannerServiceProvider.overrideWithValue(scanner ?? FakeScanner()),
+      authServiceProvider.overrideWithValue(FakeAuthService(user: authUser)),
+    ],
+  );
+  return container.read(sudokuProvider.notifier);
+}
 
 final _puzzle = [
   [5, 3, 0, 0, 7, 0, 0, 0, 0],
@@ -46,8 +80,11 @@ final _puzzle = [
   [0, 0, 0, 0, 8, 0, 0, 7, 9],
 ];
 
-SudokuNotifier _notifierWithPuzzlePlaying(FakeRepository repo) {
-  final notifier = _makeNotifier(repo);
+SudokuNotifier _notifierWithPuzzlePlaying(
+  FakeRepository repo, {
+  AppUser? authUser,
+}) {
+  final notifier = _makeNotifier(repo, authUser: authUser);
   final board = SudokuBoard(
     _puzzle.map((r) => List<int>.from(r)).toList(),
     List.generate(9, (_) => List.filled(9, false)),
@@ -114,19 +151,40 @@ void main() {
       expect(n.state.errorMessage, isNotNull);
     });
 
-    test('clears invalidCells and errorMessage when board has no conflicts', () {
-      final n = _notifierWithPuzzlePlaying(FakeRepository());
-      n.selectCell(0, 2);
-      n.updateSelectedCell(4);
-      n.validateBoard();
-      expect(n.state.invalidCells, isEmpty);
-      expect(n.state.errorMessage, isNull);
-    });
+    test(
+      'clears invalidCells and errorMessage when board has no conflicts',
+      () {
+        final n = _notifierWithPuzzlePlaying(FakeRepository());
+        n.selectCell(0, 2);
+        n.updateSelectedCell(4);
+        n.validateBoard();
+        expect(n.state.invalidCells, isEmpty);
+        expect(n.state.errorMessage, isNull);
+      },
+    );
 
-    test('marks conflicting cells in both directions', () {
+    test('marks only user-entered conflicting cells during playing', () {
       final n = _notifierWithPuzzlePlaying(FakeRepository());
       n.selectCell(0, 2);
       n.updateSelectedCell(5);
+      n.validateBoard();
+      expect(n.state.invalidCells.contains((0, 0)), isFalse);
+      expect(n.state.invalidCells.contains((0, 2)), isTrue);
+    });
+
+    test('marks all conflicting cells during correctingOCR', () {
+      final n = _makeNotifier(FakeRepository());
+      final grid = _puzzle.map((r) => List<int>.from(r)).toList();
+      grid[0][2] = 5;
+      n.debugSetState(
+        SudokuState(
+          board: SudokuBoard(
+            grid,
+            List.generate(9, (_) => List.filled(9, false)),
+          ),
+          status: GameStatus.correctingOCR,
+        ),
+      );
       n.validateBoard();
       expect(n.state.invalidCells.contains((0, 0)), isTrue);
       expect(n.state.invalidCells.contains((0, 2)), isTrue);
@@ -161,13 +219,15 @@ void main() {
       final grid = List.generate(9, (_) => List.filled(9, 0));
       grid[0][0] = 5;
       grid[0][1] = 5;
-      n.debugSetState(SudokuState(
-        board: SudokuBoard(
-          grid,
-          List.generate(9, (_) => List.filled(9, false)),
+      n.debugSetState(
+        SudokuState(
+          board: SudokuBoard(
+            grid,
+            List.generate(9, (_) => List.filled(9, false)),
+          ),
+          status: GameStatus.correctingOCR,
         ),
-        status: GameStatus.correctingOCR,
-      ));
+      );
       n.confirmScannedBoard();
       expect(n.state.status, GameStatus.correctingOCR);
       expect(n.state.errorMessage, isNotNull);
@@ -178,7 +238,7 @@ void main() {
   group('SudokuNotifier.scanBoard', () {
     test('populates board and sets correctingOCR on success', () async {
       final scanner = FakeScanner()..result = _puzzle;
-      final n = _makeNotifier(FakeRepository(), scanner);
+      final n = _makeNotifier(FakeRepository(), scanner: scanner);
       await n.scanBoard('fake/path.jpg');
       expect(n.state.status, GameStatus.correctingOCR);
       expect(n.state.board.grid, _puzzle);
@@ -187,7 +247,7 @@ void main() {
 
     test('sets error status on ScannerException', () async {
       final scanner = FakeScanner()..shouldThrow = true;
-      final n = _makeNotifier(FakeRepository(), scanner);
+      final n = _makeNotifier(FakeRepository(), scanner: scanner);
       await n.scanBoard('fake/path.jpg');
       expect(n.state.status, GameStatus.error);
       expect(n.state.errorMessage, contains('scan failed'));
@@ -211,16 +271,37 @@ void main() {
       expect(repo.saved, hasLength(1));
       expect(repo.saved.first.solveMode, SolveModeRecord.auto);
     });
+
+    test('saved record has null userId when not logged in', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.solveBoard();
+      await Future.microtask(() {});
+      expect(repo.saved.first.userId, isNull);
+    });
+
+    test('saved record has correct userId when logged in', () async {
+      final repo = FakeRepository();
+      const user = AppUser(uid: 'test-uid', displayName: 'Test');
+      final n = _notifierWithPuzzlePlaying(repo, authUser: user);
+      n.solveBoard();
+      await Future.microtask(() {});
+      expect(repo.saved.first.userId, 'test-uid');
+    });
   });
 
   group('SudokuNotifier.giveHint', () {
     test('fills in one empty cell', () {
       final n = _notifierWithPuzzlePlaying(FakeRepository());
-      final emptyBefore =
-          n.state.board.grid.expand((r) => r).where((v) => v == 0).length;
+      final emptyBefore = n.state.board.grid
+          .expand((r) => r)
+          .where((v) => v == 0)
+          .length;
       n.giveHint();
-      final emptyAfter =
-          n.state.board.grid.expand((r) => r).where((v) => v == 0).length;
+      final emptyAfter = n.state.board.grid
+          .expand((r) => r)
+          .where((v) => v == 0)
+          .length;
       expect(emptyAfter, emptyBefore - 1);
     });
 
@@ -257,6 +338,41 @@ void main() {
       n.debugSetState(n.state.copyWith(invalidCells: {(0, 0), (0, 1)}));
       n.reset();
       expect(n.state.invalidCells, isEmpty);
+    });
+  });
+
+  group('SudokuNotifier.saveCurrentProgress', () {
+    test('saves record with inProgress mode and non-null solveTime', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(
+        n.state.copyWith(elapsed: const Duration(minutes: 2, seconds: 30)),
+      );
+      n.saveCurrentProgress();
+      await Future.microtask(() {});
+      expect(repo.saved, hasLength(1));
+      final record = repo.saved.first;
+      expect(record.solveMode, SolveModeRecord.inProgress);
+      expect(record.solveTime, const Duration(minutes: 2, seconds: 30));
+    });
+
+    test('does nothing when status is not playing', () async {
+      final repo = FakeRepository();
+      final n = _makeNotifier(repo);
+      n.saveCurrentProgress();
+      await Future.microtask(() {});
+      expect(repo.saved, isEmpty);
+    });
+
+    test('dispose saves elapsed time when game is in progress', () async {
+      final repo = FakeRepository();
+      final n = _notifierWithPuzzlePlaying(repo);
+      n.debugSetState(n.state.copyWith(elapsed: const Duration(seconds: 45)));
+      n.dispose();
+      await Future.microtask(() {});
+      expect(repo.saved, hasLength(1));
+      expect(repo.saved.first.solveTime, const Duration(seconds: 45));
+      expect(repo.saved.first.solveMode, SolveModeRecord.inProgress);
     });
   });
 }

@@ -29,6 +29,9 @@ class SudokuRecord {
   @HiveField(6)
   final int hintsUsed;
 
+  @HiveField(7)
+  final String? userId;
+
   const SudokuRecord({
     required this.id,
     required this.scannedAt,
@@ -37,5 +40,6 @@ class SudokuRecord {
     required this.solveMode,
     this.solveTime,
     this.hintsUsed = 0,
+    this.userId,
   });
 }

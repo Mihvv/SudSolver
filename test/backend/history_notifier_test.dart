@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_record.dart';
 import 'package:sudsolver/backend/repositories/sudoku_repository.dart';
-import 'package:sudsolver/backend/services/history_notifier.dart';
+import 'package:sudsolver/backend/providers/history_notifier.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> _store;

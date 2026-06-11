@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../backend/services/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_notifier.dart';
 import 'camera_screen.dart';
 import 'history_screen.dart';
 

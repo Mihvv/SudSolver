@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
-import 'package:sudsolver/backend/services/sudoku_solver.dart';
-import 'package:sudsolver/backend/services/sudoku_validator.dart';
+import 'package:sudsolver/backend/logic/sudoku_solver.dart';
+import 'package:sudsolver/backend/logic/sudoku_validator.dart';
 
 SudokuBoard _boardFromGrid(List<List<int>> grid) =>
     SudokuBoard(grid, List.generate(9, (_) => List.filled(9, false)));

@@ -1,25 +1,34 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sudsolver/backend/services/scanner_service.dart';
-import 'package:sudsolver/backend/services/mock_scanner_service.dart';
+import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
+import 'package:sudsolver/backend/services/scanner/http_scanner_service.dart';
+import 'package:sudsolver/backend/services/puzzle/puzzle_service.dart';
+import 'package:sudsolver/backend/services/puzzle/http_puzzle_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
+import '../providers/auth_notifier.dart';
 import 'sudoku_state.dart';
-import 'sudoku_solver.dart';
-import 'sudoku_validator.dart';
+import '../logic/sudoku_solver.dart';
+import '../logic/sudoku_validator.dart';
 
 final scannerServiceProvider = Provider<IScannerService>(
-      (_) => const MockScannerService(),
+  (_) => const HttpScannerService(baseUrl: 'https://lmhi.7o7.cx/sudsolver'),
+);
+
+final puzzleServiceProvider = Provider<IPuzzleService>(
+  (_) => const HttpPuzzleService(),
 );
 
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
-    ref,
-    ) {
+  ref,
+) {
   return SudokuNotifier(
     ref.read(sudokuRepositoryProvider),
     ref.read(scannerServiceProvider),
+    ref.read(puzzleServiceProvider),
+    ref,
   );
 });
 
@@ -27,11 +36,17 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   final SudokuSolver _solver = SudokuSolver();
   final ISudokuRepository _repository;
   final IScannerService _scanner;
+  final IPuzzleService _puzzleService;
+  final Ref _ref;
 
   Timer? _timer;
 
-  SudokuNotifier(this._repository, this._scanner)
-      : super(SudokuState(board: SudokuBoard.empty()));
+  SudokuNotifier(
+    this._repository,
+    this._scanner,
+    this._puzzleService,
+    this._ref,
+  ) : super(SudokuState(board: SudokuBoard.empty()));
 
   String get _sessionId =>
       state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -70,7 +85,14 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void validateBoard() {
-    final invalid = SudokuValidator.getInvalidCells(state.board);
+    final allInvalid = SudokuValidator.getInvalidCells(state.board);
+
+    final invalid = state.status == GameStatus.playing
+        ? allInvalid
+              .where((cell) => !state.board.isFixed[cell.$1][cell.$2])
+              .toSet()
+        : allInvalid;
+
     state = state.copyWith(
       invalidCells: invalid,
       errorMessage: invalid.isEmpty
@@ -169,6 +191,50 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     }
   }
 
+  Future<void> fetchRandomPuzzle({String difficulty = 'medium'}) async {
+    _stopTimer();
+    state = state.copyWith(
+      status: GameStatus.scanning,
+      errorMessage: null,
+      invalidCells: {},
+    );
+
+    try {
+      final grid = await _puzzleService.fetchRandomPuzzle(
+        difficulty: difficulty,
+      );
+
+      if (!mounted) return;
+
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+      final board = SudokuBoard(
+        grid,
+        List.generate(9, (r) => List.generate(9, (c) => grid[r][c] != 0)),
+      );
+
+      state = SudokuState(
+        board: board,
+        status: GameStatus.playing,
+        sessionId: id,
+      );
+
+      _startTimer();
+    } on PuzzleException catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Nie udało się pobrać planszy: ${e.message}',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Nieoczekiwany błąd: ${e.toString()}',
+      );
+    }
+  }
+
   void resumeRecord(SudokuRecord record) {
     final grid = (record.solvedGrid ?? record.initialGrid)
         .map((r) => List<int>.from(r))
@@ -187,7 +253,6 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     _startTimer();
   }
 
-  /// Zapisuje aktualny postęp – wywołaj przed reset() gdy gra w toku.
   void saveCurrentProgress() {
     if (state.status != GameStatus.playing) return;
     _saveRecord(state.board, solveMode: SolveModeRecord.inProgress);
@@ -213,17 +278,24 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   }
 
   void _saveRecord(
-      SudokuBoard solvedBoard, {
-        required SolveModeRecord solveMode,
-      }) {
+    SudokuBoard solvedBoard, {
+    required SolveModeRecord solveMode,
+  }) {
+    final userId = _ref.read(authServiceProvider).currentUser?.uid;
+
+    final shouldSaveTime =
+        solveMode == SolveModeRecord.manual ||
+        solveMode == SolveModeRecord.inProgress;
+
     final record = SudokuRecord(
       id: _sessionId,
       scannedAt: DateTime.now(),
       initialGrid: state.board.grid,
       solvedGrid: solvedBoard.grid,
       solveMode: solveMode,
-      solveTime: solveMode == SolveModeRecord.manual ? state.elapsed : null,
+      solveTime: shouldSaveTime ? state.elapsed : null,
       hintsUsed: state.hintsUsed,
+      userId: userId,
     );
     _repository.save(record).catchError((_) {});
   }

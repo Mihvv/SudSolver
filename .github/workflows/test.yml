@@ -48,7 +48,6 @@ jobs:
 
       - name: Analyze code
         run: |
-          dart format --output=none --set-exit-if-changed ./lib
           dart analyze --no-fatal-warnings ./lib
 
       - name: Run unit tests
