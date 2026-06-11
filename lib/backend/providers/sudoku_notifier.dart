@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudsolver/backend/services/scanner/scanner_service.dart';
 import 'package:sudsolver/backend/services/scanner/http_scanner_service.dart';
+import 'package:sudsolver/backend/services/puzzle/puzzle_service.dart';
+import 'package:sudsolver/backend/services/puzzle/http_puzzle_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
@@ -15,12 +17,17 @@ final scannerServiceProvider = Provider<IScannerService>(
   (_) => const HttpScannerService(baseUrl: 'https://lmhi.7o7.cx/sudsolver'),
 );
 
+final puzzleServiceProvider = Provider<IPuzzleService>(
+  (_) => const HttpPuzzleService(),
+);
+
 final sudokuProvider = StateNotifierProvider<SudokuNotifier, SudokuState>((
   ref,
 ) {
   return SudokuNotifier(
     ref.read(sudokuRepositoryProvider),
     ref.read(scannerServiceProvider),
+    ref.read(puzzleServiceProvider),
     ref,
   );
 });
@@ -29,12 +36,17 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   final SudokuSolver _solver = SudokuSolver();
   final ISudokuRepository _repository;
   final IScannerService _scanner;
+  final IPuzzleService _puzzleService;
   final Ref _ref;
 
   Timer? _timer;
 
-  SudokuNotifier(this._repository, this._scanner, this._ref)
-    : super(SudokuState(board: SudokuBoard.empty()));
+  SudokuNotifier(
+    this._repository,
+    this._scanner,
+    this._puzzleService,
+    this._ref,
+  ) : super(SudokuState(board: SudokuBoard.empty()));
 
   String get _sessionId =>
       state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -172,6 +184,50 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
         errorMessage: 'Błąd skanowania: ${e.message}',
       );
     } catch (e) {
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Nieoczekiwany błąd: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<void> fetchRandomPuzzle({String difficulty = 'medium'}) async {
+    _stopTimer();
+    state = state.copyWith(
+      status: GameStatus.scanning,
+      errorMessage: null,
+      invalidCells: {},
+    );
+
+    try {
+      final grid = await _puzzleService.fetchRandomPuzzle(
+        difficulty: difficulty,
+      );
+
+      if (!mounted) return;
+
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+      final board = SudokuBoard(
+        grid,
+        List.generate(9, (r) => List.generate(9, (c) => grid[r][c] != 0)),
+      );
+
+      state = SudokuState(
+        board: board,
+        status: GameStatus.playing,
+        sessionId: id,
+      );
+
+      _startTimer();
+    } on PuzzleException catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        status: GameStatus.error,
+        errorMessage: 'Nie udało się pobrać planszy: ${e.message}',
+      );
+    } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         status: GameStatus.error,
         errorMessage: 'Nieoczekiwany błąd: ${e.toString()}',
