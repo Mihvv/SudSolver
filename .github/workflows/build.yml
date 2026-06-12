@@ -3,7 +3,7 @@ run-name: Build profile APK for ${{ github.ref_name }}
 
 on:
   push:
-    branches: [main]
+    branches: [main, backend]
     paths-ignore:
       - "README.md"
       - "**/*.md"
