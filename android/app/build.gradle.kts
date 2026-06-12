@@ -20,6 +20,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = project.findProperty("storePassword") as String? ?: ""
+            keyAlias = project.findProperty("keyAlias") as String? ?: ""
+            keyPassword = project.findProperty("keyPassword") as String? ?: ""
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.github.mihvv.sudsolver"
@@ -35,7 +44,10 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".debug"
         }
-
+        getByName("profile") {
+            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("release")
+        }
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -43,8 +55,8 @@ android {
 }
 
 dependencies {
-//    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
-//    implementation("com.google.firebase:firebase-analytics")
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
 
 flutter {

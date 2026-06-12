@@ -3,7 +3,7 @@ run-name: Build profile APK for ${{ github.ref_name }}
 
 on:
   push:
-    branches: [main]
+    branches: [main, backend]
     paths-ignore:
       - "README.md"
       - "**/*.md"
@@ -43,21 +43,33 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
 
+      - name: Debug keystore SHA1
+        run: |
+          keytool -list -v -keystore android/app/keystore.jks \
+          -alias ${{ secrets.KEY_ALIAS }} \
+          -storepass ${{ secrets.STORE_PASSWORD }}
+
       - name: Create key.properties
         run: |
-          echo "storeFile=keystore.jks"                        > android/key.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}"  >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"      >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}"            >> android/key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/gradle.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"     >> android/gradle.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}"           >> android/gradle.properties
 
       - name: Modify app metadata (Debug branding)
         run: |
-          sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle*
           sed -i 's/android:label="SudSolver"/android:label="Sudsolver (${{ steps.ex_br.outputs.branch }})"/g' android/app/src/main/AndroidManifest.xml
+
+      - name: Debug applicationId
+        run: |
+          cat android/app/build.gradle.kts | grep -i "applicationId\|suffix"
 
       - name: Create google-services.json
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
+
+      - name: Debug google-services.json
+        run: |
+          cat android/app/google-services.json | grep certificate_hash
 
       - name: Build profile APK
         run: |

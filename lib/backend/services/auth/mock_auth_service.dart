@@ -12,8 +12,10 @@ class MockAuthService implements IAuthService {
     email: 'test@example.com',
   );
 
-  @override
-  Stream<AppUser?> get authStateChanges => _controller.stream;
+  Stream<AppUser?> get authStateChanges async* {
+    yield _current;        // od razu emituje null → AuthGate pokazuje LoginScreen
+    yield* _controller.stream;
+  }
 
   @override
   AppUser? get currentUser => _current;
