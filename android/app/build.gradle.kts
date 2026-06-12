@@ -35,11 +35,14 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".debug"
         }
-
+        create("profile") {
+            applicationIdSuffix = ".debug"
+            initWith(getByName("debug"))
+        }
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
         }
-    }
+    }   
 }
 
 dependencies {
