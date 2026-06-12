@@ -101,7 +101,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     );
   }
 
-  // Confirm board after scannning
+  // confirm board after scannning
   void confirmScannedBoard() {
     final invalid = SudokuValidator.getInvalidCells(state.board);
     if (invalid.isNotEmpty) {
