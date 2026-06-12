@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../backend/providers/sudoku_notifier.dart';
 import '../../backend/providers/sudoku_state.dart';
+import '../../backend/providers/auth_notifier.dart';
 import 'camera_screen.dart';
 import 'history_screen.dart';
 import 'solve_screen.dart';
@@ -19,6 +20,17 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('SudSolver'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              ref.read(authNotifierProvider.notifier).signOut();
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),

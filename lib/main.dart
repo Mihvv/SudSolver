@@ -9,7 +9,18 @@ import 'frontend/screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    print('Firebase initialization error: $e');
+    // Continue anyway - don't crash the app
+  }
+
   await HiveInit.init();
   runApp(const ProviderScope(child: SudSolverApp()));
 }
@@ -42,7 +53,10 @@ class AuthGate extends ConsumerWidget {
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const LoginScreen(),
+      error: (err, stack) {
+        print('Auth state error: $err');
+        return const LoginScreen();
+      },
     );
   }
 }
