@@ -4,6 +4,7 @@ import '../../backend/providers/sudoku_notifier.dart';
 import '../../backend/providers/sudoku_state.dart';
 import '../../backend/providers/auth_notifier.dart';
 import '../screens/login_screen.dart';
+import '../screens/profile_screen.dart';
 import 'camera_screen.dart';
 import 'history_screen.dart';
 import 'solve_screen.dart';
@@ -58,10 +59,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           if (currentUser != null)
             IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () {
-                ref.read(authNotifierProvider.notifier).signOut();
-              },
+              icon: const Icon(Icons.person),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
             ),
         ],
       ),
