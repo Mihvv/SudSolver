@@ -13,6 +13,7 @@ class BoardConfirmationScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sudokuProvider);
     final notifier = ref.read(sudokuProvider.notifier);
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,7 +29,7 @@ class BoardConfirmationScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+            padding: EdgeInsets.fromLTRB(16,16,16,40 + bottomPadding),
             child: Text(
               state.errorMessage ??
                   'Popraw ewentualne błędy skanowania, następnie zatwierdź planszę.',
