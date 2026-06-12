@@ -3,15 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../backend/providers/sudoku_notifier.dart';
 import '../../backend/providers/sudoku_state.dart';
 import '../../backend/providers/auth_notifier.dart';
+import '../screens/login_screen.dart';
 import 'camera_screen.dart';
 import 'history_screen.dart';
 import 'solve_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _hasShownLoginScreen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
     final errorMessage = ref.watch(
       sudokuProvider.select((s) => s.errorMessage),
     );
@@ -19,16 +28,41 @@ class HomeScreen extends ConsumerWidget {
       sudokuProvider.select((s) => s.status == GameStatus.scanning),
     );
 
+    // Automatycznie wyjdź z LoginScreen gdy użytkownik się zaloguje
+    authState.whenData((user) {
+      if (_hasShownLoginScreen && user != null && context.mounted) {
+        _hasShownLoginScreen = false;
+        Navigator.pop(context);
+      }
+    });
+
+    return authState.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => _buildUI(context, ref, errorMessage, isLoading, null),
+      data: (currentUser) => _buildUI(context, ref, errorMessage, isLoading, currentUser),
+    );
+  }
+
+  Widget _buildUI(
+      BuildContext context,
+      WidgetRef ref,
+      String? errorMessage,
+      bool isLoading,
+      dynamic currentUser,
+      ) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SudSolver'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              ref.read(authNotifierProvider.notifier).signOut();
-            },
-          ),
+          if (currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                ref.read(authNotifierProvider.notifier).signOut();
+              },
+            ),
         ],
       ),
       body: SafeArea(
@@ -148,6 +182,20 @@ class HomeScreen extends ConsumerWidget {
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
+              const SizedBox(height: 32),
+              if (currentUser == null)
+                TextButton(
+                  onPressed: () {
+                    _hasShownLoginScreen = true;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LoginScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('Zaloguj się'),
+                ),
             ],
           ),
         ),
