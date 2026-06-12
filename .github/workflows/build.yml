@@ -47,8 +47,7 @@ jobs:
         run: |
           keytool -list -v -keystore android/app/keystore.jks \
           -alias ${{ secrets.KEY_ALIAS }} \
-          -storepass ${{ secrets.STORE_PASSWORD }} \
-          | grep SHA1
+          -storepass ${{ secrets.STORE_PASSWORD }}
 
       - name: Create key.properties
         run: |
