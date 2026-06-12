@@ -51,10 +51,9 @@ jobs:
 
       - name: Create key.properties
         run: |
-          echo "storeFile=keystore.jks"                        > android/key.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}"  >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"      >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}"            >> android/key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/gradle.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"     >> android/gradle.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}"           >> android/gradle.properties
 
       - name: Modify app metadata (Debug branding)
         run: |
