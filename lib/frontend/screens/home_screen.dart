@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../backend/providers/sudoku_notifier.dart';
+import '../../backend/providers/sudoku_state.dart';
 import 'camera_screen.dart';
 import 'history_screen.dart';
+import 'solve_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -11,6 +13,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final errorMessage = ref.watch(
       sudokuProvider.select((s) => s.errorMessage),
+    );
+    final isLoading = ref.watch(
+      sudokuProvider.select((s) => s.status == GameStatus.scanning),
     );
 
     return Scaffold(
@@ -46,10 +51,13 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
               ],
               FilledButton.icon(
-                onPressed: () => Navigator.push(
+                onPressed: isLoading
+                    ? null
+                    : () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CameraScreen(fromGallery: false),
+                    builder: (_) =>
+                    const CameraScreen(fromGallery: false),
                   ),
                 ),
                 icon: const Icon(Icons.camera_alt),
@@ -61,10 +69,13 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () => Navigator.push(
+                onPressed: isLoading
+                    ? null
+                    : () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CameraScreen(fromGallery: true),
+                    builder: (_) =>
+                    const CameraScreen(fromGallery: true),
                   ),
                 ),
                 icon: const Icon(Icons.photo_library),
@@ -76,9 +87,47 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () => Navigator.push(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                  await ref
+                      .read(sudokuProvider.notifier)
+                      .fetchRandomPuzzle();
+                  if (!context.mounted) return;
+                  final status = ref.read(
+                    sudokuProvider.select((s) => s.status),
+                  );
+                  if (status == GameStatus.playing) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SolveScreen(),
+                      ),
+                    );
+                  }
+                },
+                icon: isLoading
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Icon(Icons.casino_outlined),
+                label: Text(isLoading ? 'Pobieranie…' : 'Losowa plansza'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: isLoading
+                    ? null
+                    : () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const HistoryScreen(),
+                  ),
                 ),
                 icon: const Icon(Icons.history),
                 label: const Text('Historie'),
