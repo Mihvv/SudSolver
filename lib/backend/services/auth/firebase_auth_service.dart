@@ -9,7 +9,12 @@ class FirebaseAuthService implements IAuthService {
 
   FirebaseAuthService({FirebaseAuth? auth, GoogleSignIn? googleSignIn})
     : _auth = auth ?? FirebaseAuth.instance,
-      _googleSignIn = googleSignIn ?? GoogleSignIn();
+      _googleSignIn =
+          googleSignIn ??
+          GoogleSignIn(
+            serverClientId:
+                '333165744649-h05n9j4tvobt4q434bva1b3ghsl2mpir.apps.googleusercontent.com',
+          );
 
   @override
   Stream<AppUser?> get authStateChanges =>
