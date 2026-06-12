@@ -27,7 +27,7 @@ class FirebaseAuthService implements IAuthService {
   Future<AppUser?> signInWithGoogle() async {
     try {
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // użytkownik anulował
+      if (googleUser == null) return null;
 
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -39,8 +39,8 @@ class FirebaseAuthService implements IAuthService {
       return _mapUser(result.user);
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Błąd logowania Google');
-    } catch (e) {
-      throw AuthException('Nieoczekiwany błąd: $e');
+    } catch (e, stack) {
+      throw AuthException('Nieoczekiwany błąd: $e\n$stack');
     }
   }
 
