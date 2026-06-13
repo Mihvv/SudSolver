@@ -162,6 +162,35 @@ Key architectural decisions:
 
 ---
 
+# Testing
+
+Run all tests:
+
+```bash
+flutter test
+```
+
+Dependencies:
+
+```yaml
+flutter_test:
+  sdk: flutter
+flutter_lints: ^6.0.0
+```
+
+Implemented unit tests:
+
+| File | Covered class | What's tested |
+|------|--------------|---------------|
+| `sudoku_board_test.dart` | `SudokuBoard` | Empty board creation, `copyWithCell` immutability, `lock` marking fixed cells |
+| `sudoku_state_test.dart` | `SudokuState` | Default values, `hasSelection`, `isSelected`, `isEditable`, `canSolve`, `canEditCell`, `isCellInvalid`, `copyWith` sentinel behavior |
+| `sudoku_validator_test.dart` | `SudokuValidator` | `isValidMove` (row/col/box conflicts, self-check), `isBoardValid`, `isBoardComplete`, `getInvalidCells` (duplicate detection in all three dimensions) |
+| `sudoku_solver_test.dart` | `SudokuSolver` | Solves a valid puzzle, preserves given digits, handles already-complete board, does not mutate original |
+| `sudoku_notifier_test.dart` | `SudokuNotifier` | Cell selection, value updates, validation, OCR confirmation, scan flow, auto-solve, hints, reset, progress saving, dispose auto-save, userId propagation |
+| `history_notifier_test.dart` | `HistoryNotifier` | Load success/error/concurrent guard, optimistic delete, rollback on failure |
+
+---
+
 # CI/CD
 
 | Workflow     | Trigger                        | Action                                              |
