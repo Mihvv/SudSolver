@@ -43,12 +43,6 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
 
-      - name: Debug keystore SHA1
-        run: |
-          keytool -list -v -keystore android/app/keystore.jks \
-          -alias ${{ secrets.KEY_ALIAS }} \
-          -storepass ${{ secrets.STORE_PASSWORD }}
-
       - name: Create key.properties
         run: |
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/gradle.properties
@@ -59,17 +53,9 @@ jobs:
         run: |
           sed -i 's/android:label="SudSolver"/android:label="Sudsolver (${{ steps.ex_br.outputs.branch }})"/g' android/app/src/main/AndroidManifest.xml
 
-      - name: Debug applicationId
-        run: |
-          cat android/app/build.gradle.kts | grep -i "applicationId\|suffix"
-
       - name: Create google-services.json
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
-
-      - name: Debug google-services.json
-        run: |
-          cat android/app/google-services.json | grep certificate_hash
 
       - name: Build profile APK
         run: |
