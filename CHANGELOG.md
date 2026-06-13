@@ -2,20 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - Backend & Infrastructure - 2026-05-30
+## [0.3.0] - 2026-06-12
 
 ### Added
-- Initialized Flutter project architecture.
-- Implemented `SudokuBoard` and `SudokuRecord` data models with Hive adapters.
-- Created `SudokuValidator` for real-time move validation.
-- Implemented `SudokuSolver` using backtracking algorithm.
-- Configured application state management using Riverpod (`SudokuNotifier`).
-- Implemented `SudokuRepository` utilizing Hive local database for game history.
-- Wrote comprehensive unit test suite for all backend components.
+- **Authentication & User Accounts (Backend):** Implemented full user account support and authorization leveraging Firebase Auth (`firebase_auth_service.dart`, `auth_notifier.dart`). Configured Cloud Firestore database infrastructure for storing user profile data.
+- **User Interface (Frontend):** Added a dedicated user profile screen (`profile_screen.dart`) and introduced an `AuthGate` component to conditionally route users based on their login state.
+- **Random Board Generation:** Integrated an external HTTP service (`http_puzzle_service.dart`) to fetch random Sudoku puzzles from a remote API and added a dedicated trigger button to the user interface.
+- **OCR Scanner Integration:** Connected the frontend camera and preview layers (`camera_screen.dart`, `edit_photo_screen.dart`) with the backend OCR engine network service (`http_scanner_service.dart`), enabling physical boards to be uploaded and parsed via the OpenCV-based backend.
+- **Firebase Configuration:** Added core Firebase configuration files (`firebase.json`, `firebase_options.dart`) to the project structure.
 
-### CI/CD & DevOps
-- Configured GitHub Actions workflow for static analysis (`flutter analyze`) and automated testing (`flutter test`).
-- Integrated Firebase App Distribution for automated APK deployment.
+### Changed
+- **Dependencies Upgrade:** Updated `pubspec.yaml` with the necessary packages to support the Firebase ecosystem (`firebase_core`, `firebase_auth`, `cloud_firestore`).
+- **Authentication Flow:** Configured Firebase initialization to be simplified and made authentication optional during development to streamline local testing environments.
 
 ## [0.2.0] - Frontend Integration & Persistence - 2026-06-07 
 
@@ -48,3 +46,19 @@ All notable changes to this project will be documented in this file.
 - Fixed an issue where the board history progress was failing to save.
 - Properly formatted the code repository under ./lib.
 - Fixed the CI workflow (test.yml) by removing the strict format checking that was causing pipeline failures.
+
+## [0.1.0] - Backend & Infrastructure - 2026-05-30
+
+### Added
+- Initialized Flutter project architecture.
+- Implemented `SudokuBoard` and `SudokuRecord` data models with Hive adapters.
+- Created `SudokuValidator` for real-time move validation.
+- Implemented `SudokuSolver` using backtracking algorithm.
+- Configured application state management using Riverpod (`SudokuNotifier`).
+- Implemented `SudokuRepository` utilizing Hive local database for game history.
+- Wrote comprehensive unit test suite for all backend components.
+
+### CI/CD & DevOps
+- Configured GitHub Actions workflow for static analysis (`flutter analyze`) and automated testing (`flutter test`).
+- Integrated Firebase App Distribution for automated APK deployment.
+
