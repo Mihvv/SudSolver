@@ -8,6 +8,7 @@ import 'package:sudsolver/backend/services/puzzle/http_puzzle_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
 import '../repositories/sudoku_repository.dart';
+import '../repositories/repository_provider.dart';
 import '../providers/auth_notifier.dart';
 import 'sudoku_state.dart';
 import '../logic/sudoku_solver.dart';

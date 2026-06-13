@@ -9,6 +9,7 @@ import 'package:sudsolver/backend/models/app_user.dart';
 import 'package:sudsolver/backend/providers/sudoku_notifier.dart';
 import 'package:sudsolver/backend/providers/sudoku_state.dart';
 import 'package:sudsolver/backend/providers/auth_notifier.dart';
+import 'package:sudsolver/backend/repositories/repository_provider.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> saved = [];
