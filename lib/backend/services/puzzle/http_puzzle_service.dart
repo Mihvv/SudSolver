@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,16 +9,36 @@ import 'puzzle_service.dart';
 class HttpPuzzleService implements IPuzzleService {
   final String baseUrl;
   final Duration timeout;
+  final int maxRetries;
 
   const HttpPuzzleService({
     this.baseUrl = 'https://sugoku.onrender.com',
-    this.timeout = const Duration(seconds: 20),
+    this.timeout = const Duration(seconds: 45),
+    this.maxRetries = 2,
   });
 
   @override
   Future<List<List<int>>> fetchRandomPuzzle({
     String difficulty = 'medium',
   }) async {
+    PuzzleException? lastError;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await _fetchOnce(difficulty: difficulty);
+      } on PuzzleException catch (e) {
+        lastError = e;
+        if (!e.isRetryable) rethrow;
+        if (attempt < maxRetries - 1) {
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
+  Future<List<List<int>>> _fetchOnce({required String difficulty}) async {
     const validDifficulties = {'easy', 'medium', 'hard', 'random'};
     final level = validDifficulties.contains(difficulty)
         ? difficulty
@@ -31,13 +52,22 @@ class HttpPuzzleService implements IPuzzleService {
     try {
       response = await http.get(uri).timeout(timeout);
     } on SocketException catch (e) {
-      throw PuzzleException('Brak połączenia z serwerem: ${e.message}');
+      throw PuzzleException(
+        'Brak połączenia z serwerem: ${e.message}',
+        isRetryable: true,
+      );
+    } on TimeoutException {
+      throw const PuzzleException(
+        'Serwer nie odpowiada — spróbuj ponownie za chwilę.',
+        isRetryable: true,
+      );
     }
 
     if (response.statusCode != 200) {
       throw PuzzleException(
         'Błąd serwera (HTTP ${response.statusCode}): '
         '${response.body.substring(0, response.body.length.clamp(0, 200))}',
+        isRetryable: false,
       );
     }
 
@@ -52,12 +82,16 @@ class HttpPuzzleService implements IPuzzleService {
       throw PuzzleException(
         'Nieprawidłowy JSON z serwera: '
         '${body.substring(0, body.length.clamp(0, 100))}',
+        isRetryable: false,
       );
     }
 
     final rawBoard = json['board'];
     if (rawBoard == null) {
-      throw const PuzzleException('Odpowiedź API nie zawiera klucza "board".');
+      throw const PuzzleException(
+        'Odpowiedź API nie zawiera klucza "board".',
+        isRetryable: false,
+      );
     }
 
     try {
@@ -67,6 +101,7 @@ class HttpPuzzleService implements IPuzzleService {
     } catch (_) {
       throw const PuzzleException(
         'Nieoczekiwany format planszy w odpowiedzi API.',
+        isRetryable: false,
       );
     }
   }

@@ -4,7 +4,9 @@ abstract class IPuzzleService {
 
 class PuzzleException implements Exception {
   final String message;
-  const PuzzleException(this.message);
+  final bool isRetryable;
+
+  const PuzzleException(this.message, {this.isRetryable = false});
 
   @override
   String toString() => 'PuzzleException: $message';

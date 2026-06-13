@@ -292,7 +292,13 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     final record = SudokuRecord(
       id: _sessionId,
       scannedAt: DateTime.now(),
-      initialGrid: state.board.grid,
+      initialGrid: List.generate(
+        9,
+        (r) => List.generate(
+          9,
+          (c) => state.board.isFixed[r][c] ? state.board.grid[r][c] : 0,
+        ),
+      ),
       solvedGrid: solvedBoard.grid,
       solveMode: solveMode,
       solveTime: shouldSaveTime ? state.elapsed : null,
