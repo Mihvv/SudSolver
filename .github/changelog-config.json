@@ -1,23 +1,23 @@
 {
   "categories": [
     {
-      "title": "## 🚀 Features",
+      "title": "## Features",
       "title_prefix_pattern": "feat.*"
     },
     {
-      "title": "## 🐛 Bug Fixes",
+      "title": "## Bug Fixes",
       "title_prefix_pattern": "fix.*"
     },
     {
-      "title": "## 🔧 CI/CD & Chores",
+      "title": "## Chores",
       "title_prefix_pattern": "(ci|chore|cd).*"
     },
     {
-      "title": "## ♻️ Refactor",
+      "title": "## Refactor",
       "title_prefix_pattern": "refactor.*"
     },
     {
-        "title": "## 📦 Other",
+        "title": "## Other",
         "title_prefix_pattern": ".*"
     }
   ],
