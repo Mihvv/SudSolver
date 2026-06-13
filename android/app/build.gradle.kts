@@ -43,13 +43,16 @@ android {
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "SudSolver")
         }
         getByName("profile") {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("release")
+            resValue("string", "app_name", "SudSolver")
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
+            resValue("string", "app_name", "SudSolver")
         }
     }
 }
