@@ -1,16 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_record.dart';
 import 'package:sudsolver/backend/repositories/sudoku_repository.dart';
-import 'package:sudsolver/backend/services/history_notifier.dart';
+import 'package:sudsolver/backend/providers/history_notifier.dart';
 
 class FakeRepository implements ISudokuRepository {
   final List<SudokuRecord> _store;
   bool throwOnGetAll = false;
+  bool throwOnDelete = false;
 
   FakeRepository([List<SudokuRecord>? initial]) : _store = initial ?? [];
 
   @override
   Future<void> save(SudokuRecord r) async => _store.add(r);
+
   @override
   Future<List<SudokuRecord>> getAll() async {
     if (throwOnGetAll) throw Exception('db error');
@@ -20,8 +22,12 @@ class FakeRepository implements ISudokuRepository {
   @override
   Future<SudokuRecord?> getById(String id) async =>
       _store.where((r) => r.id == id).firstOrNull;
+
   @override
-  Future<void> delete(String id) async => _store.removeWhere((r) => r.id == id);
+  Future<void> delete(String id) async {
+    if (throwOnDelete) throw Exception('delete error');
+    _store.removeWhere((r) => r.id == id);
+  }
 }
 
 SudokuRecord _record(String id) => SudokuRecord(
@@ -42,8 +48,10 @@ void main() {
     });
 
     test('initially has idle status', () {
-      final notifier = HistoryNotifier(FakeRepository());
-      expect(notifier.state.status, HistoryLoadStatus.idle);
+      expect(
+        HistoryNotifier(FakeRepository()).state.status,
+        HistoryLoadStatus.idle,
+      );
     });
 
     test('sets status to error and stores message on failure', () async {
@@ -53,6 +61,23 @@ void main() {
       expect(notifier.state.status, HistoryLoadStatus.error);
       expect(notifier.state.errorMessage, isNotNull);
     });
+
+    test(
+      'concurrent calls do not double-load — second call is ignored',
+      () async {
+        final repo = FakeRepository([_record('1')]);
+        final notifier = HistoryNotifier(repo);
+
+        // Fire two loads without awaiting the first.
+        final first = notifier.loadHistory();
+        final second = notifier.loadHistory();
+        await Future.wait([first, second]);
+
+        // Records should appear exactly once despite two calls.
+        expect(notifier.state.records, hasLength(1));
+        expect(notifier.state.status, HistoryLoadStatus.loaded);
+      },
+    );
   });
 
   group('HistoryNotifier.deleteRecord', () {
@@ -72,5 +97,35 @@ void main() {
       await notifier.deleteRecord('1');
       expect(await repo.getAll(), isEmpty);
     });
+
+    test(
+      'optimistic update removes record from UI before disk write',
+      () async {
+        final repo = FakeRepository([_record('1'), _record('2')]);
+        final notifier = HistoryNotifier(repo);
+        await notifier.loadHistory();
+
+        // Don't await — check state synchronously right after the call starts.
+        final future = notifier.deleteRecord('1');
+        expect(notifier.state.records.any((r) => r.id == '1'), isFalse);
+
+        await future;
+      },
+    );
+
+    test(
+      'rolls back and sets errorMessage when repository delete fails',
+      () async {
+        final repo = FakeRepository([_record('1'), _record('2')])
+          ..throwOnDelete = true;
+        final notifier = HistoryNotifier(repo);
+        await notifier.loadHistory();
+        await notifier.deleteRecord('1');
+
+        // After rollback the record should be visible again.
+        expect(notifier.state.records.any((r) => r.id == '1'), isTrue);
+        expect(notifier.state.errorMessage, isNotNull);
+      },
+    );
   });
 }

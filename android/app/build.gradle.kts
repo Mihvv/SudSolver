@@ -20,6 +20,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = project.findProperty("storePassword") as String? ?: ""
+            keyAlias = project.findProperty("keyAlias") as String? ?: ""
+            keyPassword = project.findProperty("keyPassword") as String? ?: ""
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.github.mihvv.sudsolver"
@@ -32,10 +41,18 @@ android {
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "SudSolver")
+        }
+        getByName("profile") {
+            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("release")
+            resValue("string", "app_name", "SudSolver")
+        }
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
+            resValue("string", "app_name", "SudSolver")
         }
     }
 }

@@ -45,14 +45,12 @@ jobs:
 
       - name: Create key.properties
         run: |
-          echo "storeFile=keystore.jks"                        > android/key.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}"  >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"      >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}"            >> android/key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/gradle.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}"     >> android/gradle.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}"           >> android/gradle.properties
 
       - name: Modify app metadata (Debug branding)
         run: |
-          sed -i 's/applicationId = "com.github.mihvv.sudsolver"/applicationId = "com.github.mihvv.sudsolver.debug"/g' android/app/build.gradle*
           sed -i 's/android:label="SudSolver"/android:label="Sudsolver (${{ steps.ex_br.outputs.branch }})"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Create google-services.json

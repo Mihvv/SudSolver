@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-# SudSolver
-=======
 # SudSolver
 
 > Scan, solve, and track Sudoku puzzles.
@@ -300,4 +297,4 @@ The project follows a clean, decoupled architecture divided into a **Frontend** 
 * **State Management & Logic:** Application states, user actions, and game data flows are reactively managed using the Riverpod framework. Core game mechanics include move validation (with visual error highlighting), a hint generator, and an instant, recursive backtracking solver algorithm.
 * **Data Persistence & Cloud Sync:** The application features a hybrid data layer designed for both offline capability and cross-device synchronization. Local matches and elapsed time counters are instantly persisted using Hive (a lightweight key-value database). When authenticated securely through Firebase Auth (Google Sign-In), local match histories, performance statistics, and user profiles are automatically backed up and synced to Cloud Firestore.
 * **Dynamic Content:** To ensure endless replayability, the system connects via an HTTP service layer to an external Puzzle API, allowing users to dynamically pull and generate fresh, random Sudoku boards directly from the internet.
->>>>>>> Stashed changes
+

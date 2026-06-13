@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudsolver/backend/models/sudoku_board.dart';
-import 'package:sudsolver/backend/services/sudoku_state.dart';
+import 'package:sudsolver/backend/providers/sudoku_state.dart';
 
 void main() {
   group('SudokuState', () {
@@ -17,6 +17,7 @@ void main() {
       expect(base.selectedCol, isNull);
       expect(base.hintsUsed, 0);
       expect(base.elapsed, Duration.zero);
+      expect(base.invalidCells, isEmpty);
     });
 
     test('hasSelection is false when no cell selected', () {
@@ -108,6 +109,25 @@ void main() {
       });
     });
 
+    group('isCellInvalid', () {
+      test('returns false for all cells when invalidCells is empty', () {
+        expect(base.isCellInvalid(0, 0), isFalse);
+        expect(base.isCellInvalid(4, 4), isFalse);
+      });
+
+      test('returns true for a cell that is in invalidCells', () {
+        final state = base.copyWith(invalidCells: {(2, 3), (5, 7)});
+        expect(state.isCellInvalid(2, 3), isTrue);
+        expect(state.isCellInvalid(5, 7), isTrue);
+      });
+
+      test('returns false for a cell that is not in invalidCells', () {
+        final state = base.copyWith(invalidCells: {(2, 3)});
+        expect(state.isCellInvalid(0, 0), isFalse);
+        expect(state.isCellInvalid(2, 4), isFalse);
+      });
+    });
+
     group('copyWith', () {
       test('null errorMessage can be explicitly cleared', () {
         final withError = base.copyWith(errorMessage: 'err');
@@ -126,6 +146,23 @@ void main() {
         final cleared = withSel.copyWith(selectedRow: null, selectedCol: null);
         expect(cleared.selectedRow, isNull);
         expect(cleared.selectedCol, isNull);
+      });
+
+      test('invalidCells can be updated via copyWith', () {
+        final state = base.copyWith(invalidCells: {(1, 1)});
+        expect(state.isCellInvalid(1, 1), isTrue);
+      });
+
+      test('invalidCells can be cleared via copyWith', () {
+        final withInvalid = base.copyWith(invalidCells: {(1, 1)});
+        final cleared = withInvalid.copyWith(invalidCells: {});
+        expect(cleared.invalidCells, isEmpty);
+      });
+
+      test('keeps existing invalidCells when not specified', () {
+        final withInvalid = base.copyWith(invalidCells: {(3, 3)});
+        final copy = withInvalid.copyWith(hintsUsed: 2);
+        expect(copy.isCellInvalid(3, 3), isTrue);
       });
     });
   });

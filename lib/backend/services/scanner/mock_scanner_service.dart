@@ -1,12 +1,10 @@
-import 'dart:async';
-
-abstract class IScannerService {
-  Future<List<List<int>>> scanImage(String path);
-}
+import 'scanner_service.dart';
 
 class MockScannerService implements IScannerService {
+  const MockScannerService();
+
   @override
-  Future<List<List<int>>> scanImage(String path) async {
+  Future<List<List<int>>> scanImage(String imagePath) async {
     await Future.delayed(const Duration(seconds: 2));
 
     return [
