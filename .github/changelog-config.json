@@ -15,13 +15,12 @@
     {
       "title": "## Refactor",
       "title_prefix_pattern": "refactor.*"
-    },
-    {
-        "title": "## Other",
-        "title_prefix_pattern": ".*"
     }
   ],
   "pr_template": "- ${{TITLE}}",
   "commit_template": "- ${{TITLE}}",
-  "empty_template": "- no changes"
+  "empty_template": "- no changes",
+  "exclude_merge_branches": [
+    "HEAD"
+  ]
 }
