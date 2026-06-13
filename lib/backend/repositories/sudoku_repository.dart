@@ -2,11 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/sudoku_record.dart';
 
-// Provider
-final sudokuRepositoryProvider = Provider<ISudokuRepository>(
-  (ref) => HiveSudokuRepository(),
-);
-
 // Interfejs
 abstract class ISudokuRepository {
   Future<void> save(SudokuRecord record);
