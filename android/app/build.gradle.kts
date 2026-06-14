@@ -51,7 +51,7 @@ android {
             resValue("string", "app_name", "SudSolver")
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             resValue("string", "app_name", "SudSolver")
         }
     }
