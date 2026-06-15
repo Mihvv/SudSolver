@@ -7,6 +7,7 @@ import 'package:sudsolver/backend/services/puzzle/puzzle_service.dart';
 import 'package:sudsolver/backend/services/puzzle/http_puzzle_service.dart';
 import '../models/sudoku_board.dart';
 import '../models/sudoku_record.dart';
+import '../models/app_user.dart';
 import '../repositories/sudoku_repository.dart';
 import '../repositories/repository_provider.dart';
 import '../providers/auth_notifier.dart';
@@ -39,6 +40,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
   final IScannerService _scanner;
   final IPuzzleService _puzzleService;
   final Ref _ref;
+  String? _cachedUserId;
 
   Timer? _timer;
 
@@ -47,7 +49,12 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     this._scanner,
     this._puzzleService,
     this._ref,
-  ) : super(SudokuState(board: SudokuBoard.empty()));
+  ) : super(SudokuState(board: SudokuBoard.empty())) {
+    _cachedUserId = _ref.read(authServiceProvider).currentUser?.uid;
+    _ref.listen<AppUser?>(currentUserProvider, (_, user) {
+      _cachedUserId = user?.uid;
+    });
+  }
 
   String get _sessionId =>
       state.sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
@@ -183,7 +190,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     } on ScannerException catch (e) {
       state = state.copyWith(
         status: GameStatus.error,
-        errorMessage: 'Błąd skanowania: ${e.message}',
+        errorMessage: 'Scan error: ${e.message}',
       );
     } catch (e) {
       state = state.copyWith(
@@ -283,7 +290,7 @@ class SudokuNotifier extends StateNotifier<SudokuState> {
     SudokuBoard solvedBoard, {
     required SolveModeRecord solveMode,
   }) {
-    final userId = _ref.read(authServiceProvider).currentUser?.uid;
+    final userId = _cachedUserId;
 
     final shouldSaveTime =
         solveMode == SolveModeRecord.manual ||
