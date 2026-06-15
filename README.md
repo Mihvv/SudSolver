@@ -243,6 +243,53 @@ Implemented unit tests:
 | `sudoku_solver_test.dart` | `SudokuSolver` | Solves a valid puzzle, preserves given digits, handles already-complete board, does not mutate original |
 | `sudoku_notifier_test.dart` | `SudokuNotifier` | Cell selection, value updates, validation, OCR confirmation, scan flow, auto-solve, hints, reset, progress saving, dispose auto-save, userId propagation |
 | `history_notifier_test.dart` | `HistoryNotifier` | Load success/error/concurrent guard, optimistic delete, rollback on failure |
+| `backend_integration_test.dart` | Multi-layer (Auth ↔ Repository ↔ Notifier ↔ Service) | Cross-component integration flows using fake in-memory repositories; see details below |
+| `backend_api_mock_test.dart` | Mock services, `SyncedSudokuRepository`, `AuthNotifier`, `HistoryNotifier`, exceptions | Isolated unit tests for mock services and Riverpod notifiers using Mockito; see details below |
+| `backend_api_integration_test.dart` | `HttpPuzzleService`, `HttpScannerService` | Live HTTP tests against real external endpoints; tagged `integration` and run separately |
+
+### `backend_integration_test.dart` — Backend Integration Tests
+
+Tests that wire together multiple real or fake components to verify cross-layer behaviour without hitting any network:
+
+| Group | What's tested |
+|-------|--------------|
+| Auth ↔ Repository | `sudokuRepositoryProvider` returns `FakeSudokuRepository` when logged out, switches to `SyncedSudokuRepository` after login, and reverts back on logout |
+| SudokuNotifier ↔ Repository | Auto-solve saves a record with `SolveModeRecord.auto`; manual board completion saves with `SolveModeRecord.manual`; progress auto-save persists elapsed time and hints used |
+| SudokuNotifier ↔ HistoryNotifier | Solved record appears in history after a `loadHistory` call; deleted record is removed from history |
+| SyncedSudokuRepository (fake) | Import of cloud-only records, upload of local-only records, conflict resolution (cloud newer wins, local newer preserved), `SyncResult.failed` on remote exception, fire-and-forget save/delete |
+| SudokuNotifier — service error handling | `scanBoard` sets `GameStatus.error` when `IScannerService` throws; `fetchRandomPuzzle` sets `GameStatus.error` when `IPuzzleService` fails; successful fetch transitions to `GameStatus.playing` |
+| AuthNotifier ↔ AuthService | Sign-in populates `currentUserProvider`; sign-out clears it; `AuthException` from service sets `AuthStatus.error` |
+| resumeRecord | Restores board, elapsed time, hints used, session ID, and fixed-cell mask from a saved `SudokuRecord` |
+
+Helper fakes used: `FakeSudokuRepository` (in-memory `ISudokuRepository`), `FakeFirestoreRepository` (in-memory `FirestoreSudokuRepository` with `uploadBatch` call counter), `FailingScannerService`, `FailingPuzzleService`, `_ThrowingFirestoreRepository`, `_ThrowingAuthService`.
+
+### `backend_api_mock_test.dart` — Mock & Unit Tests
+
+Isolated tests using `MockAuthService`, `MockPuzzleService`, `MockScannerService`, and Mockito-generated mocks:
+
+| Group | What's tested |
+|-------|--------------|
+| `MockAuthService` | Initial state is null; `authStateChanges` emits null then user; sign-in returns fake user with correct UID/email; sign-out clears user and emits null |
+| `MockPuzzleService` | Returns valid 9×9 grids; easy ≠ hard; unknown difficulty falls back to medium; all cell values in range 0–9 |
+| `MockScannerService` | Returns valid 9×9 grid; all values in range 0–9 |
+| `SyncedSudokuRepository` (Mockito) | `save` writes locally and fires remote save; `getAll` delegates to local only; `delete` removes locally and fires remote delete; `syncFromCloud` adds remote-only, uploads local-only, updates stale local, returns `SyncResult.failed` on exception |
+| `AuthNotifier` (Riverpod) | Initial status is idle; sign-in transitions `idle → loading → idle`; sign-out resets to idle; `currentUserProvider` is null before login |
+| `HistoryNotifier` (Riverpod) | Initial status is idle; `loadHistory` populates records; `deleteRecord` removes entry optimistically and calls `delete` on repo; rollback on repo error with non-null `errorMessage`; error status set when `getAll` throws |
+| `SyncResult` | `isSuccess` true/false; `toString` includes counts or error string |
+| `PuzzleException` | `isRetryable` defaults to false, can be set to true; `toString` contains message |
+| `ScannerException` / `AuthException` | `toString` contains message |
+
+### `backend_api_integration_test.dart` — Live HTTP Integration Tests
+
+Tagged `@Tags(['integration'])` — run separately from the standard `flutter test` suite (e.g. `flutter test --tags integration`). Requires a network connection.
+
+| Group | What's tested |
+|-------|--------------|
+| `HttpPuzzleService` — sugoku.onrender.com | Medium difficulty returns valid 9×9 grid; easy has ≥ as many clues as hard; easy has ≥ 30 filled cells; hard has ≤ 35 filled cells; two consecutive random puzzles differ; unknown difficulty falls back gracefully; all four difficulty levels return valid grids; unreachable base URL throws `PuzzleException`; 1 ms timeout throws |
+| `HttpScannerService` — lmhi.7o7.cx/sudsolver | Real image returns valid 9×9 grid with ≥ 17 filled cells; non-existent file path throws `ScannerException` with Polish message `Plik nie istnieje`; empty file throws `ScannerException`; non-image file throws `ScannerException`; unreachable base URL throws `ScannerException` |
+| Puzzle + Scanner — data shape consistency | Both services return grids with identical dimensions |
+
+The scanner tests require a sample image at `test/assets/sample_sudoku.jpg` (overridable via the `SUDOKU_IMAGE_PATH` environment variable). Tests are skipped automatically when the file is absent.
 
 ---
 
