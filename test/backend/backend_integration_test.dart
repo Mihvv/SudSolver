@@ -535,7 +535,6 @@ void main() {
       final container = buildContainer(authService: auth);
       addTearDown(container.dispose);
 
-      // Subscribe so StreamProvider starts listening to authStateChanges
       container.read(authStateProvider);
 
       final notifier = container.read(authNotifierProvider.notifier);

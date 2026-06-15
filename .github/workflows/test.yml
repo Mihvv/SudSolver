@@ -51,4 +51,9 @@ jobs:
           dart analyze --no-fatal-warnings ./lib
 
       - name: Run unit tests
-        run: flutter test
+        run: flutter test --exclude-tags integration
+
+      - name: Run backend integration tests
+        run: flutter test --tags integration test/backend/backend_api_integration_test.dart --timeout 120s
+        env:
+          SUDOKU_IMAGE_PATH: "test/assets/sample_sudoku.jpg"

@@ -20,7 +20,7 @@ import 'package:sudsolver/backend/providers/history_notifier.dart';
 import 'package:sudsolver/backend/repositories/repository_provider.dart';
 
 @GenerateMocks([ISudokuRepository, FirestoreSudokuRepository])
-import 'backend_api_test.mocks.dart';
+import 'backend_api_mock_test.mocks.dart';
 
 void main() {
   group('MockAuthService', () {
